@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import '../App.css';
 
 export default function SingleAttackSession({ onClose }) {
@@ -21,7 +20,7 @@ export default function SingleAttackSession({ onClose }) {
     { id: 3, name: 'Default Credentials on Admin Panel', severity: 'Critical', found: false }
   ]);
   const [showFlagInput, setShowFlagInput] = useState(false);
-  const navigate = useNavigate();
+  // navigation is handled by parent via onClose prop
   const terminalRef = React.useRef(null);
 
   // Auto-scroll terminal to bottom when new logs are added
@@ -95,7 +94,8 @@ export default function SingleAttackSession({ onClose }) {
     if (flag.toLowerCase() === 'flag{cyb3rs1m_r0cks!}') {
       setMsg({ text: '✅ Flag submitted successfully! Challenge completed!', type: 'success' });
       setLog(prev => [...prev, 'Flag verified! Challenge completed successfully!']);
-      setTimeout(() => navigate('/learn'), 2000);
+      // notify parent to close / navigate back when provided
+      setTimeout(() => { if (onClose) onClose(); }, 1200);
     } else {
       setMsg({ text: '❌ Invalid flag. Try again!', type: 'error' });
     }
@@ -179,6 +179,17 @@ export default function SingleAttackSession({ onClose }) {
           </div>
         </div>
         
+        <div className="task-checkpoints" style={{ marginBottom: 12 }}>
+          <h3>Task & checkpoints</h3>
+          <p style={{ marginTop: 4, color: '#444' }}>Objective: Bypass the naive login and extract the secret flag.</p>
+          <ol style={{ textAlign: 'left', paddingLeft: 18 }}>
+            <li><input type="checkbox" checked={sessionActive} readOnly /> Start the session</li>
+            <li><input type="checkbox" checked={Math.round(progress) >= 30} readOnly /> Discover initial vulnerabilities</li>
+            <li><input type="checkbox" checked={Math.round(progress) >= 100 || showFlagInput} readOnly /> Complete scan / reveal flag</li>
+            <li><input type="checkbox" checked={msg.type === 'success'} readOnly /> Submit the flag</li>
+          </ol>
+        </div>
+
         <div className="vulnerability-list">
           <h3>Vulnerabilities Found</h3>
           {foundVulnerabilities.map(vuln => (
@@ -231,7 +242,7 @@ export default function SingleAttackSession({ onClose }) {
         
         <div className="session-actions">
           <button 
-            onClick={onClose || (() => navigate('/learn'))} 
+            onClick={() => { if (onClose) onClose(); }} 
             className="btn ghost"
           >
             ← Back to Learn
