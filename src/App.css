@@ -35,4 +35,88 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui
 
 .site-footer{margin-top:3rem;color:var(--muted);font-size:.95rem}
 
-@media (max-width:640px){.nav-actions{gap:.4rem}.center-card{padding:1.25rem}}
+/* Learn Page Styles */
+.learn-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.path-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.path-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.path-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+.path-card h2 {
+  color: var(--accent);
+  margin-top: 0;
+}
+
+.path-card p {
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+/* Defense Page Styles */
+.defense-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.training-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.training-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.training-card h3 {
+  color: var(--accent);
+  margin-top: 0;
+}
+
+.training-card p {
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+/* Active link state */
+.nav-link.active {
+  color: var(--accent);
+  background: rgba(124, 58, 237, 0.1);
+}
+
+@media (max-width: 640px) {
+  .nav-actions { gap: .4rem; }
+  .center-card { padding: 1.25rem; }
+  .path-options, .training-options {
+    grid-template-columns: 1fr;
+  }
+  .learn-container, .defense-container {
+    padding: 1rem;
+  }
+}
