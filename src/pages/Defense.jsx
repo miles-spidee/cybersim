@@ -1,48 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Defense.css';
 
 const defenseModules = [
   {
     id: 1,
-    title: 'Network Defense',
-    description: 'Learn how to secure networks and defend against attacks',
-    icon: '🌐',
-    steps: [
-      'Enable and configure a firewall',
-      'Set up intrusion detection systems',
-      'Monitor network traffic for anomalies',
-      'Implement secure VPN access',
-      'Regularly update network devices'
-    ],
-    completed: false
-  },
-  {
-    id: 2,
-    title: 'System Hardening',
-    description: 'Secure systems and prevent unauthorized access',
+    title: 'System Hardening Lab',
+    description: 'Interactive system security hardening environment',
     icon: '🔒',
     steps: [
+      'Scan system for vulnerabilities',
       'Disable unnecessary services',
-      'Apply the principle of least privilege',
+      'Configure firewall rules',
       'Enable disk encryption',
-      'Configure automatic updates',
-      'Implement secure authentication'
+      'Set up secure authentication'
     ],
-    completed: false
-  },
-  {
-    id: 3,
-    title: 'Incident Response',
-    description: 'Effectively respond to security incidents',
-    icon: '🚨',
-    steps: [
-      'Create an incident response plan',
-      'Establish communication protocols',
-      'Contain and eradicate threats',
-      'Collect and analyze evidence',
-      'Document lessons learned'
-    ],
-    completed: false
+    completed: false,
+    labEnvironment: {
+      services: [
+        { id: 'ftp', name: 'FTP Server', running: true, port: 21, description: 'Unencrypted file transfer protocol' },
+        { id: 'telnet', name: 'Telnet', running: true, port: 23, description: 'Unencrypted remote access' },
+        { id: 'samba', name: 'Samba', running: true, port: 445, description: 'File sharing service' },
+        { id: 'bluetooth', name: 'Bluetooth', running: true, port: null, description: 'Wireless communication' },
+        { id: 'httpd', name: 'Web Server', running: false, port: 80, description: 'Not needed on workstations' }
+      ],
+      firewall: {
+        enabled: false,
+        rules: []
+      },
+      encryption: {
+        enabled: false,
+        progress: 0
+      },
+      authentication: {
+        passwordPolicy: 'weak',
+        mfaEnabled: false
+      }
+    }
   }
 ];
 
@@ -52,33 +46,232 @@ function Defense() {
   const [currentStep, setCurrentStep] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [taskCompleted, setTaskCompleted] = useState(false);
-  const [userInput, setUserInput] = useState('');
-  const [scanResults, setScanResults] = useState(null);
-  const [selectedOptions, setSelectedOptions] = useState([]);
-  const [correctAnswers, setCorrectAnswers] = useState([]);
+  const [command, setCommand] = useState('');
+  const [output, setOutput] = useState([
+    '=== System Hardening Lab ===',
+    'Type "help" to see available commands',
+    'Type "start" to begin the lab',
+    ''
+  ]);
+  const [labState, setLabState] = useState(null);
+  const terminalRef = useRef(null);
+  const inputRef = useRef(null);
   const navigate = useNavigate();
 
+  // Initialize lab state when module starts
+  useEffect(() => {
+    if (activeModule?.labEnvironment) {
+      const initialState = JSON.parse(JSON.stringify(activeModule.labEnvironment));
+      setLabState(initialState);
+      setOutput([
+        '=== System Hardening Lab ===',
+        `Current Task: ${activeModule.steps[0]}`,
+        'Type "help" to see available commands',
+        ''
+      ]);
+    }
+  }, [activeModule]);
+
+  // Auto-scroll terminal
+  useEffect(() => {
+    if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+  }, [output]);
+
+  const executeCommand = (cmd) => {
+    if (!cmd.trim()) return;
+    const newOutput = [...output, `$ ${cmd}`];
+    const args = cmd.trim().split(' ');
+    const baseCmd = args[0].toLowerCase();
+
+    switch (baseCmd) {
+      case 'help':
+        newOutput.push('Available commands:');
+        newOutput.push('  help              - Show this help message');
+        newOutput.push('  start             - Begin the lab');
+        newOutput.push('  scan system       - Scan for vulnerabilities');
+        newOutput.push('  list services     - List all running services');
+        newOutput.push('  stop <service>    - Stop a service (e.g., stop ftp)');
+        newOutput.push('  firewall status   - Check firewall status');
+        newOutput.push('  firewall enable   - Enable the firewall');
+        newOutput.push('  encrypt start     - Start disk encryption');
+        newOutput.push('  clear             - Clear the terminal');
+        newOutput.push('  next              - Proceed to next step');
+        break;
+
+      case 'start':
+        newOutput.push('Starting lab environment...');
+        newOutput.push('Type "scan system" to begin vulnerability assessment');
+        setTaskCompleted(true);
+        break;
+
+      case 'scan':
+        if (args[1] === 'system') {
+          newOutput.push('Scanning system for vulnerabilities...');
+          newOutput.push('Found 5 security issues:');
+          newOutput.push('1. FTP service running (insecure protocol)');
+          newOutput.push('2. Telnet service running (insecure protocol)');
+          newOutput.push('3. Samba service running (potential vulnerability)');
+          newOutput.push('4. Bluetooth service running (potential attack vector)');
+          newOutput.push('5. Firewall is disabled');
+          newOutput.push('\nRun "list services" to see all running services');
+          setTaskCompleted(true);
+        } else newOutput.push('Unknown command. Type "help" for available commands.');
+        break;
+
+      case 'list':
+        if (args[1] === 'services' && labState) {
+          newOutput.push('Running services:');
+          labState.services.forEach(s => {
+            if (s.running) newOutput.push(`- ${s.name} (${s.id}) - Port: ${s.port || 'N/A'} - ${s.description}`);
+          });
+          newOutput.push('\nUse "stop <service>" to disable a service');
+        } else newOutput.push('Unknown command. Type "help" for available commands.');
+        break;
+
+      case 'stop':
+        if (args[1] && labState) {
+          const service = labState.services.find(s => s.id === args[1]);
+          if (service) {
+            service.running = false;
+            newOutput.push(`Stopped ${service.name} service`);
+            const vulnerableServices = labState.services.filter(s =>
+              ['ftp', 'telnet', 'samba', 'bluetooth'].includes(s.id)
+            );
+            const allStopped = vulnerableServices.every(s => !s.running);
+            if (allStopped) {
+              newOutput.push('All vulnerable services have been disabled!');
+              setTaskCompleted(true);
+            }
+          } else newOutput.push(`Service "${args[1]}" not found`);
+        } else newOutput.push('Please specify a service to stop');
+        break;
+
+      case 'firewall':
+        if (args[1] === 'status') {
+          newOutput.push(`Firewall is ${labState?.firewall.enabled ? 'enabled' : 'disabled'}`);
+          if (labState?.firewall.rules.length > 0) {
+            newOutput.push('Active rules:');
+            labState.firewall.rules.forEach(rule => newOutput.push(`- ${rule}`));
+          }
+        } else if (args[1] === 'enable') {
+          if (labState) {
+            labState.firewall.enabled = true;
+            labState.firewall.rules = [
+              'Allow SSH (port 22)',
+              'Allow HTTP (port 80)',
+              'Allow HTTPS (port 443)',
+              'Block all other incoming connections'
+            ];
+            newOutput.push('Firewall enabled with secure rules');
+            setTaskCompleted(true);
+          }
+        } else newOutput.push('Unknown firewall command. Use "firewall status" or "firewall enable"');
+        break;
+
+      case 'encrypt':
+        if (args[1] === 'start') {
+          newOutput.push('Starting disk encryption...');
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 10;
+            setOutput(prev => [...prev.slice(0, -1), `Encryption in progress: ${progress}%`]);
+            if (progress >= 100) {
+              clearInterval(interval);
+              setOutput(prev => [...prev.slice(0, -1), '✅ Disk encryption completed successfully']);
+              setTaskCompleted(true);
+              if (labState) {
+                setLabState({
+                  ...labState,
+                  encryption: { ...labState.encryption, enabled: true, progress: 100 }
+                });
+              }
+            }
+          }, 500);
+        } else newOutput.push('Unknown command. Use "encrypt start" to begin disk encryption.');
+        break;
+
+      case 'clear':
+        setOutput(['=== Terminal cleared ===', '']);
+        return;
+
+      case 'next':
+        if (taskCompleted) {
+          completeStep();
+          return;
+        } else newOutput.push('Please complete the current task before proceeding.');
+        break;
+
+      default:
+        newOutput.push(`Command not found: ${cmd}`);
+        newOutput.push('Type "help" for a list of available commands');
+    }
+
+    setOutput(newOutput);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && command.trim()) {
+      executeCommand(command);
+      setCommand('');
+    }
+  };
+
   const startModule = (module) => {
-    setActiveModule({ ...module, steps: [...module.steps] });
-    setProgress(0);
+    setActiveModule(module);
     setCurrentStep(0);
+    setProgress(0);
+    setTaskCompleted(false);
     setShowCompletion(false);
+    setCommand('');
+    setOutput([
+      '=== System Hardening Lab ===',
+      `Current Task: ${module.steps[0]}`,
+      'Type "help" to see available commands',
+      ''
+    ]);
   };
 
   const completeStep = () => {
     if (!activeModule) return;
-    
     const newStep = currentStep + 1;
+
     if (newStep >= activeModule.steps.length) {
+      const newOutput = [
+        ...output,
+        '',
+        '🎉 All tasks completed successfully!',
+        '✅ System hardening lab finished.',
+        "Type 'exit' or click 'Return to Start' to restart."
+      ];
+      setOutput(newOutput);
       setShowCompletion(true);
       setActiveModule({ ...activeModule, completed: true });
-    } else {
-      setCurrentStep(newStep);
-      setProgress(Math.round((newStep / activeModule.steps.length) * 100));
-      setTaskCompleted(false);
-      setUserInput('');
-      setSelectedOptions([]);
+      return;
     }
+
+    setCurrentStep(newStep);
+    setProgress(Math.round((newStep / activeModule.steps.length) * 100));
+    setTaskCompleted(false);
+    const newOutput = [...output, ''];
+
+    switch (newStep) {
+      case 1:
+        newOutput.push('=== Step 2: Disable Unnecessary Services ===');
+        break;
+      case 2:
+        newOutput.push('=== Step 3: Configure Firewall ===');
+        break;
+      case 3:
+        newOutput.push('=== Step 4: Enable Disk Encryption ===');
+        break;
+      case 4:
+        newOutput.push('=== Step 5: Secure Authentication ===');
+        setTaskCompleted(true);
+        break;
+      default:
+        break;
+    }
+    setOutput(newOutput);
   };
 
   const resetModule = () => {
@@ -86,362 +279,155 @@ function Defense() {
     setProgress(0);
     setCurrentStep(0);
     setShowCompletion(false);
+    setTaskCompleted(false);
+    setCommand('');
+    setOutput([
+      '=== System Hardening Lab ===',
+      'Type "help" to see available commands',
+      'Type "start" to begin the lab',
+      ''
+    ]);
   };
 
-  if (activeModule) {
+  // === COMPLETION SCREEN ===
+  if (showCompletion) {
     return (
-      <div className="defense-module">
-        <div className="module-header">
-          <button onClick={resetModule} className="btn ghost">
-            ← Back to Defense Training
-          </button>
-          <h2>{activeModule.icon} {activeModule.title}</h2>
-          <p>{activeModule.description}</p>
-          
-          {!showCompletion ? (
-            <div className="progress-container">
-              <div className="progress-bar">
-                <div 
-                  className="progress" 
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <div className="progress-text">
-                Step {currentStep + 1} of {activeModule.steps.length}
-              </div>
-            </div>
-          ) : (
-            <div className="completion-badge">
-              🎉 Module Completed!
-            </div>
-          )}
+      <div className="completion-screen">
+        <div className="success-animation">
+          <div className="checkmark">✓</div>
         </div>
-
-        {!showCompletion ? (
-          <div className="module-step">
-            <h3>Step {currentStep + 1}: {activeModule.steps[currentStep]}</h3>
-            <div className="step-content">
-                  {activeModule.id === 1 && (
-                    <div className="simulation-panel">
-                      <h4>Network Configuration</h4>
-                      <div className="network-visual">
-                        <div className="network-node server">
-                          <div className="node-icon">🖥️</div>
-                          <div className="node-label">Web Server</div>
-                          <div className="node-status">
-                            {currentStep >= 1 ? (
-                              <span className="status-dot active"></span>
-                            ) : (
-                              <label className="checkbox-container">
-                                <input 
-                                  type="checkbox" 
-                                  checked={taskCompleted}
-                                  onChange={(e) => setTaskCompleted(e.target.checked)}
-                                />
-                                <span className="checkmark"></span>
-                              </label>
-                            )}
-                            Firewall
-                          </div>
-                          <div className="node-status">
-                            {currentStep >= 2 ? (
-                              <span className="status-dot active"></span>
-                            ) : currentStep === 1 ? (
-                              <label className="checkbox-container">
-                                <input 
-                                  type="checkbox" 
-                                  checked={taskCompleted}
-                                  onChange={(e) => setTaskCompleted(e.target.checked)}
-                                />
-                                <span className="checkmark"></span>
-                              </label>
-                            ) : (
-                              <span className="status-dot"></span>
-                            )}
-                            IDS
-                          </div>
-                        </div>
-                        <div className="network-connector"></div>
-                        <div className="network-node client">
-                          <div className="node-icon">🌍</div>
-                          <div className="node-label">Internet</div>
-                        </div>
-                      </div>
-                      {currentStep === 0 && !taskCompleted && (
-                        <div className="task-prompt">
-                          <p>Enable the firewall by checking the box above to proceed.</p>
-                        </div>
-                      )}
-                      {currentStep === 1 && !taskCompleted && (
-                        <div className="task-prompt">
-                          <p>Enable the Intrusion Detection System (IDS) by checking the box above to proceed.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-              
-              {activeModule.id === 2 && (
-                <div className="system-task">
-                  {currentStep === 0 && (
-                    <div className="terminal">
-                      <div className="terminal-header">System Security Scanner</div>
-                      <div className="terminal-content">
-                        <div className="command-line">
-                          <span className="prompt">$</span> scan-system --security
-                        </div>
-                        <div className="output">
-                          Scanning system for security vulnerabilities...
-                          {taskCompleted && (
-                            <>
-                              <br />
-                              <br />
-                              <div className="scan-result critical">
-                                <span className="result-icon">✖</span>
-                                <span className="result-text">Vulnerable services detected: 3</span>
-                              </div>
-                              <div className="scan-result warning">
-                                <span className="result-icon">!</span>
-                                <span className="result-text">Outdated software: 5 packages</span>
-                              </div>
-                              <div className="scan-result success">
-                                <span className="result-icon">✓</span>
-                                <span className="result-text">Firewall: Active</span>
-                              </div>
-                              <br />
-                              <div>Scan completed. {activeModule.steps[currentStep]}</div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {!taskCompleted && (
-                        <button 
-                          className="btn primary" 
-                          onClick={() => setTaskCompleted(true)}
-                        >
-                          Run Security Scan
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {currentStep === 1 && (
-                    <div className="security-checklist">
-                      <h4>Disable Unnecessary Services</h4>
-                      <p>Select which services to disable:</p>
-                      {[
-                        { id: 'ftp', name: 'FTP Server', description: 'Unencrypted file transfer protocol' },
-                        { id: 'telnet', name: 'Telnet', description: 'Unencrypted remote access' },
-                        { id: 'samba', name: 'Samba', description: 'File sharing service' },
-                        { id: 'bluetooth', name: 'Bluetooth', description: 'Wireless communication' },
-                        { id: 'httpd', name: 'Web Server', description: 'Not needed on workstations' }
-                      ].map((service) => (
-                        <label key={service.id} className="security-option">
-                          <input 
-                            type="checkbox" 
-                            onChange={(e) => {
-                              const selected = e.target.checked
-                                ? [...selectedOptions, service.id]
-                                : selectedOptions.filter(id => id !== service.id);
-                              setSelectedOptions(selected);
-                              setTaskCompleted(selected.length >= 3);
-                            }}
-                          />
-                          <div className="option-details">
-                            <div className="option-title">{service.name}</div>
-                            <div className="option-description">{service.description}</div>
-                          </div>
-                        </label>
-                      ))}
-                      {selectedOptions.length > 0 && selectedOptions.length < 3 && (
-                        <p className="hint">Select at least 3 services to disable</p>
-                      )}
-                    </div>
-                  )}
-                  {currentStep === 2 && (
-                    <div className="encryption-setup">
-                      <h4>Enable Disk Encryption</h4>
-                      <div className="progress-indicator">
-                        <div 
-                          className="progress-bar" 
-                          style={{ width: taskCompleted ? '100%' : '0%' }}
-                        ></div>
-                      </div>
-                      <p>Encrypting system drive...</p>
-                      {!taskCompleted && (
-                        <button 
-                          className="btn primary"
-                          onClick={() => {
-                            setTaskCompleted(true);
-                            // Simulate encryption progress
-                            const interval = setInterval(() => {
-                              setProgress(prev => {
-                                if (prev >= 100) {
-                                  clearInterval(interval);
-                                  return 100;
-                                }
-                                return prev + 10;
-                              });
-                            }, 300);
-                          }}
-                        >
-                          Start Encryption
-                        </button>
-                      )}
-                      {taskCompleted && (
-                        <div className="success-message">
-                          ✓ Disk encryption completed successfully
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {activeModule.id === 3 && (
-                <div className="incident-response">
-                  <h4>Incident Details</h4>
-                  <div className="incident-card">
-                    <div className="incident-severity high">HIGH SEVERITY</div>
-                    <div className="incident-title">Suspicious Login Attempts</div>
-                    <div className="incident-details">
-                      <div><strong>Source IP:</strong> 192.168.1.45</div>
-                      <div><strong>Time:</strong> {new Date().toLocaleString()}</div>
-                      <div><strong>Status:</strong> {currentStep >= 3 ? 'Contained' : 'Active'}</div>
-                    </div>
-                    {currentStep === 0 && (
-                      <div className="incident-action">
-                        <button className="btn primary" onClick={completeStep}>
-                          Acknowledge Incident
-                        </button>
-                      </div>
-                    )}
-                    {currentStep === 1 && (
-                      <div className="incident-action">
-                        <button className="btn primary" onClick={completeStep}>
-                          Block Suspicious IP
-                        </button>
-                      </div>
-                    )}
-                    {currentStep === 2 && (
-                      <div className="incident-action">
-                        <button className="btn primary" onClick={completeStep}>
-                          Reset Affected Accounts
-                        </button>
-                      </div>
-                    )}
-                    {currentStep === 3 && (
-                      <div className="incident-action">
-                        <button className="btn primary" onClick={completeStep}>
-                          Document Incident
-                        </button>
-                      </div>
-                    )}
-                    {currentStep === 4 && (
-                      <div className="incident-action">
-                        <button className="btn primary" onClick={completeStep}>
-                          Complete Response
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              <div className="step-actions">
-                {activeModule.id === 1 && (
-                  <button 
-                    className={`btn ${taskCompleted ? 'primary' : 'disabled'}`}
-                    onClick={completeStep}
-                    disabled={!taskCompleted}
-                  >
-                    {currentStep < activeModule.steps.length - 1 ? 'Next Step' : 'Complete Module'}
-                  </button>
-                )}
-                {activeModule.id === 2 && (
-                  <div className="system-task">
-                    {currentStep === 0 && (
-                      <div className="task-input">
-                        <p>Enter the command to list all running services:</p>
-                        <input 
-                          type="text" 
-                          value={userInput}
-                          onChange={(e) => {
-                            setUserInput(e.target.value);
-                            setTaskCompleted(e.target.value.toLowerCase() === 'net start');
-                          }}
-                          placeholder="Enter command..."
-                        />
-                        {userInput && !taskCompleted && (
-                          <p className="hint">Hint: Use 'net start' to list running services</p>
-                        )}
-                      </div>
-                    )}
-                    <button 
-                      className={`btn ${taskCompleted ? 'primary' : 'disabled'}`}
-                      onClick={completeStep}
-                      disabled={!taskCompleted}
-                    >
-                      {currentStep < activeModule.steps.length - 1 ? 'Next Step' : 'Complete Module'}
-                    </button>
-                  </div>
-                )}
-                {activeModule.id === 3 && (
-                  <button 
-                    className="btn primary"
-                    onClick={completeStep}
-                  >
-                    {currentStep < activeModule.steps.length - 1 ? 'Next Step' : 'Complete Module'}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="module-complete">
-            <div className="celebration">🎉</div>
-            <h3>Great job!</h3>
-            <p>You've completed the {activeModule.title} training module.</p>
-            <div className="completion-actions">
-              <button className="btn primary" onClick={resetModule}>
-                Back to Defense Training
-              </button>
-            </div>
-          </div>
-        )}
+        <h2>Lab Completed Successfully! 🎉</h2>
+        <p>You've successfully hardened the system by:</p>
+        <ul className="achievements">
+          <li>✓ Scanned for vulnerabilities</li>
+          <li>✓ Disabled unnecessary services</li>
+          <li>✓ Configured the firewall</li>
+          <li>✓ Enabled disk encryption</li>
+          <li>✓ Set up secure authentication</li>
+        </ul>
+        <div className="completion-actions">
+          <button className="btn primary" onClick={resetModule}>
+            🔁 Return to Start
+          </button>
+          <button className="btn ghost" onClick={() => navigate('/learn')}>
+            Back to Learning Paths
+          </button>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="defense-container">
-      <div className="defense-header">
-        <h1>Defense Training</h1>
-        <p>Learn how to protect systems and networks from cyber threats</p>
-      </div>
-      
-      <div className="training-options">
-        {defenseModules.map((module) => (
-          <div key={module.id} className={`training-card ${module.completed ? 'completed' : ''}`}>
-            <div className="card-icon">{module.icon}</div>
-            <h3>{module.title}</h3>
-            <p>{module.description}</p>
-            <div className="module-stats">
-              <span className="module-steps">{module.steps.length} steps</span>
-              {module.completed && <span className="module-completed">✓ Completed</span>}
+  // === INITIAL SCREEN ===
+  if (!activeModule) {
+    return (
+      <div className="defense-lab-container">
+        <div className="defense-header">
+          <h1>Security Hardening Lab</h1>
+          <p>Practice real-world system hardening techniques in a safe, interactive environment</p>
+        </div>
+
+        <div className="lab-intro">
+          <div className="lab-card">
+            <div className="lab-card-header">
+              <span className="lab-card-icon">🔒</span>
+              <h3>System Hardening Lab</h3>
             </div>
-            <button 
-              className={`btn ${module.completed ? 'ghost' : 'primary'}`}
-              onClick={() => startModule(module)}
-            >
-              {module.completed ? 'Review Again' : 'Start Learning'}
+            <p className="lab-description">
+              Learn how to secure systems by identifying and fixing vulnerabilities, configuring firewalls, 
+              and implementing strong authentication mechanisms.
+            </p>
+            <button className="btn primary" onClick={() => startModule(defenseModules[0])}>
+              Start Lab
             </button>
           </div>
-        ))}
+        </div>
       </div>
-      
-      <div className="defense-actions">
-        <button className="btn ghost" onClick={() => navigate('/learn')}>
-          ← Back to Learning Paths
-        </button>
+    );
+  }
+
+  // === ACTIVE LAB VIEW ===
+  return (
+    <div className="defense-lab active">
+      <div className="lab-header">
+        <div className="lab-nav">
+          <h3>{activeModule.title}</h3>
+          <div className="lab-progress">
+            <div className="progress-bar">
+              <div className="progress" style={{ width: `${progress}%` }}></div>
+            </div>
+            <div className="progress-text">
+              Step {currentStep + 1} of {activeModule.steps.length}: {activeModule.steps[currentStep]}
+            </div>
+          </div>
+          <button className="btn ghost" onClick={resetModule}>Exit Lab</button>
+        </div>
+      </div>
+
+      <div className="lab-container">
+        {/* Terminal */}
+        <div className="terminal-window">
+          <div className="terminal-header">
+            <div className="terminal-buttons">
+              <span className="terminal-btn close"></span>
+              <span className="terminal-btn minimize"></span>
+              <span className="terminal-btn maximize"></span>
+            </div>
+            <div className="terminal-title">terminal@security-lab</div>
+          </div>
+          <div className="terminal-content" ref={terminalRef}>
+            {output.map((line, i) => <p key={i} className="terminal-line">{line}</p>)}
+          </div>
+          <div className="terminal-input">
+            <span className="prompt">$</span>
+            <input
+              type="text"
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a command..."
+              ref={inputRef}
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {/* ✅ Right-Side Panel */}
+        <div className="status-panel">
+          <h3>System Status</h3>
+          <div className="status-card">
+            <p>Firewall</p>
+            <span className={`status ${labState?.firewall.enabled ? 'ok' : 'bad'}`}>
+              {labState?.firewall.enabled ? 'Enabled' : 'Disabled'}
+            </span>
+          </div>
+          <div className="status-card">
+            <p>Disk Encryption</p>
+            <span className={`status ${labState?.encryption.enabled ? 'ok' : 'warn'}`}>
+              {labState?.encryption.enabled ? 'Enabled' : 'Not Encrypted'}
+            </span>
+          </div>
+          <div className="status-card">
+            <p>Vulnerable Services</p>
+            <span className={`status ${labState?.services?.filter(s => s.running && ['ftp','telnet','samba','bluetooth'].includes(s.id)).length === 0 ? 'ok' : 'bad'}`}>
+              {labState?.services?.filter(s => s.running && ['ftp','telnet','samba','bluetooth'].includes(s.id)).length || 0} Active
+            </span>
+          </div>
+          <div className="status-card">
+            <p>Authentication</p>
+            <span className="status warn">Needs Improvement</span>
+          </div>
+
+          <div className="current-task">
+            <h3>Current Task</h3>
+            <div className="task-box">
+              <span className="step-badge">Step {currentStep + 1}</span>
+              <p>{activeModule.steps[currentStep]}</p>
+              <button className="btn primary" onClick={() => taskCompleted && completeStep()}>
+                Continue to Next Step
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
