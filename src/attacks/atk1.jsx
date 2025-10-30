@@ -1,190 +1,243 @@
-// SingleAttackSession.jsx
-import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
-
-const LAB_URL = 'http://localhost:3001/';
-const SUBMIT_FLAG_URL = 'http://localhost:4000/submit-flag';
-const SESSION_TTL_SEC = 5 * 60; // 5 minutes session
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../App.css';
 
 export default function SingleAttackSession({ onClose }) {
-  const [sessionActive, setSessionActive] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(SESSION_TTL_SEC);
+  const [sessionActive, setSessionActive] = useState(true);
+  const [secondsLeft, setSecondsLeft] = useState(300); // 5 minutes
   const [flag, setFlag] = useState('');
-  const [msg, setMsg] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [log, setLog] = useState([]);
-  const timerRef = useRef(null);
+  const [msg, setMsg] = useState({ text: '', type: '' });
+  const [log, setLog] = useState([
+    'Initializing attack simulation...',
+    'Connected to target system (192.168.1.100)',
+    'Running initial scan...',
+    'Port 22/tcp open - SSH (OpenSSH 8.2p1)',
+    'Port 80/tcp open - HTTP (Apache/2.4.41)'
+  ]);
+  const [progress, setProgress] = useState(0);
+  const [foundVulnerabilities, setFoundVulnerabilities] = useState([
+    { id: 1, name: 'Weak SSH Credentials', severity: 'High', found: false },
+    { id: 2, name: 'Outdated Apache Version', severity: 'Medium', found: false },
+    { id: 3, name: 'Default Credentials on Admin Panel', severity: 'Critical', found: false }
+  ]);
+  const [showFlagInput, setShowFlagInput] = useState(false);
+  const navigate = useNavigate();
+  const terminalRef = React.useRef(null);
 
+  // Auto-scroll terminal to bottom when new logs are added
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [log]);
+
+  // Simulate scanning progress
   useEffect(() => {
     if (!sessionActive) return;
-    setLog(l => [...l, `Session started (${new Date().toLocaleTimeString()})`]);
-    setSecondsLeft(SESSION_TTL_SEC);
 
-    timerRef.current = setInterval(() => {
-      setSecondsLeft(s => {
-        if (s <= 1) {
-          clearInterval(timerRef.current);
+    const timer = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
           setSessionActive(false);
-          setLog(l => [...l, `Session expired (${new Date().toLocaleTimeString()})`]);
+          setLog(prev => [...prev, 'Session expired! Time is up.']);
           return 0;
         }
-        return s - 1;
+        return prev - 1;
       });
-    }, 1000);
 
-    return () => clearInterval(timerRef.current);
-  }, [sessionActive]);
+      setProgress(prev => {
+        const newProgress = Math.min(prev + Math.random() * 5, 100);
+        
+        // Simulate finding vulnerabilities at certain progress points
+        if (newProgress > 30 && !foundVulnerabilities[0].found) {
+          setLog(prev => [...prev, 'Found potential vulnerability: Weak SSH Credentials']);
+          setFoundVulnerabilities(prev => 
+            prev.map(vuln => 
+              vuln.id === 1 ? { ...vuln, found: true } : vuln
+            )
+          );
+        }
+        
+        if (newProgress > 60 && !foundVulnerabilities[1].found) {
+          setLog(prev => [...prev, 'Found potential vulnerability: Outdated Apache Version']);
+          setFoundVulnerabilities(prev => 
+            prev.map(vuln => 
+              vuln.id === 2 ? { ...vuln, found: true } : vuln
+            )
+          );
+        }
+        
+        if (newProgress > 90 && !foundVulnerabilities[2].found) {
+          setLog(prev => [...prev, 'Found critical vulnerability: Default Credentials on Admin Panel']);
+          setFoundVulnerabilities(prev => 
+            prev.map(vuln => 
+              vuln.id === 3 ? { ...vuln, found: true } : vuln
+            )
+          );
+        }
+        
+        if (newProgress >= 100 && !showFlagInput) {
+          setShowFlagInput(true);
+          setLog(prev => [...prev, 'Vulnerability scan complete!']);
+          setLog(prev => [...prev, 'Flag: flag{cyb3rs1m_r0cks!} (This would be hidden in a real scenario)']);
+        }
+        
+        return newProgress;
+      });
+    }, 500);
 
-  function startSession() {
-    setMsg(null);
-    setFlag('');
-    setSessionActive(true);
-    // if you later implement start-lab backend, call it here
-  }
+    return () => clearInterval(timer);
+  }, [sessionActive, foundVulnerabilities, showFlagInput]);
 
-  function endSession() {
-    clearInterval(timerRef.current);
-    setSessionActive(false);
-    setLog(l => [...l, `Session stopped by user (${new Date().toLocaleTimeString()})`]);
-    if (onClose) onClose();
-  }
-
-  function copyPayload(payload, description = '') {
-    navigator.clipboard?.writeText(payload).then(() => {
-      setLog(l => [...l, `Copied payload: ${payload} ${description ? `(${description})` : ''}`]);
-      setMsg(`Payload copied to clipboard — paste in the lab form.`);
-    }).catch(() => {
-      setMsg('Could not copy payload. Manually select & copy.');
-    });
-  }
-
-  async function submitFlag(e) {
-    e?.preventDefault();
-    setMsg(null);
-    setSubmitting(true);
-    try {
-      const res = await axios.post(SUBMIT_FLAG_URL, { flag });
-      setMsg(res.data?.message || 'Submitted — check response.');
-      setLog(l => [...l, `Flag submission: ${flag} -> ${res.data?.ok ? 'OK' : 'INCORRECT'}`]);
-    } catch (err) {
-      setMsg('Error submitting flag: ' + (err?.response?.data?.message || err.message));
-      setLog(l => [...l, `Submit error: ${err?.message || 'unknown'}`]);
-    } finally {
-      setSubmitting(false);
+  const handleFlagSubmit = (e) => {
+    e.preventDefault();
+    if (flag.toLowerCase() === 'flag{cyb3rs1m_r0cks!}') {
+      setMsg({ text: '✅ Flag submitted successfully! Challenge completed!', type: 'success' });
+      setLog(prev => [...prev, 'Flag verified! Challenge completed successfully!']);
+      setTimeout(() => navigate('/learn'), 2000);
+    } else {
+      setMsg({ text: '❌ Invalid flag. Try again!', type: 'error' });
     }
-  }
+  };
 
-  function openLabNewTab() {
-    window.open(LAB_URL, '_blank', 'noopener,noreferrer');
-    setLog(l => [...l, `Opened lab in new tab`]);
-  }
-
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+  
+  const startNewSession = () => {
+    setSessionActive(true);
+    setSecondsLeft(300);
+    setFlag('');
+    setMsg({ text: '', type: '' });
+    setLog([
+      'Initializing new attack simulation...',
+      'Connected to target system (192.168.1.100)',
+      'Running initial scan...',
+      'Port 22/tcp open - SSH (OpenSSH 8.2p1)',
+      'Port 80/tcp open - HTTP (Apache/2.4.41)'
+    ]);
+    setProgress(0);
+    setFoundVulnerabilities(prev => 
+      prev.map(vuln => ({ ...vuln, found: false }))
+    );
+    setShowFlagInput(false);
+  };
 
   return (
-    <div style={{
-      fontFamily: 'system-ui, Arial',
-      padding: 16,
-      maxWidth: 1000,
-      margin: '0 auto',
-      background: '#fff',
-      borderRadius: 8,
-      boxShadow: '0 6px 20px rgba(0,0,0,0.06)'
-    }}>
-      <header style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <h2 style={{ margin: 0 }}>SQLi — Single Attack Session (Demo)</h2>
-        <div>
-          <button onClick={endSession} style={{ marginRight: 8 }}>End</button>
-          <button onClick={startSession} disabled={sessionActive}>Start Session</button>
-        </div>
-      </header>
-
-      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12 }}>
-        <div>
-          <div style={{ marginBottom: 8 }}>
-            <strong>Session status:</strong>
-            <span style={{ marginLeft: 8 }}>
-              {sessionActive ? (
-                <span style={{ color: 'green' }}>Active — {minutes}:{String(seconds).padStart(2,'0')}</span>
-              ) : (
-                <span style={{ color: '#666' }}>Not active</span>
-              )}
+    <div className="attack-container">
+      <div className="attack-header">
+        <div className="header-content">
+          <h2>Penetration Testing Lab</h2>
+          <div className="session-info">
+            <span className="session-timer">⏱️ {formatTime(secondsLeft)}</span>
+            <span className="session-status">
+              Status: <span className={sessionActive ? 'status-active' : 'status-inactive'}>
+                {sessionActive ? 'ACTIVE' : 'INACTIVE'}
+              </span>
             </span>
           </div>
-
-          <div style={{ marginBottom: 8 }}>
-            <button onClick={openLabNewTab} style={{ marginRight: 8 }}>Open Lab (new tab)</button>
-            <button onClick={() => window.location.reload()}>Reload Lab</button>
+        </div>
+        {!sessionActive && !showFlagInput && (
+          <button onClick={startNewSession} className="btn primary">
+            Start New Session
+          </button>
+        )}
+      </div>
+      
+      <div className="attack-content">
+        <div className="terminal-window">
+          <div className="terminal-header">
+            <div className="terminal-buttons">
+              <span className="red"></span>
+              <span className="yellow"></span>
+              <span className="green"></span>
+            </div>
+            <div className="terminal-title">attack-simulator@cybersim:~$</div>
           </div>
-
-          <div style={{ border: '1px solid #eee', height: 360, marginBottom: 12 }}>
-            {sessionActive ? (
-              <iframe
-                src={LAB_URL}
-                title="SQLi Lab"
-                style={{ width: '100%', height: '100%', border: 0 }}
-              />
-            ) : (
-              <div style={{ padding: 20, color: '#777' }}>
-                Session inactive. Click <strong>Start Session</strong> to enable the lab iframe.
-                <div style={{ marginTop: 8 }}>
-                  For the demo, ensure your vulnerable app is running on <code>http://localhost:3001</code>.
+          <div className="terminal-content" ref={terminalRef}>
+            {log.map((entry, i) => (
+              <div key={i} className="log-entry">
+                <span className="prompt">$</span> {entry}
+              </div>
+            ))}
+            {progress < 100 && sessionActive && (
+              <div className="log-entry">
+                <span className="prompt">$</span> Scanning... {Math.round(progress)}%
+                <div className="progress-bar">
+                  <div className="progress" style={{ width: `${progress}%` }}></div>
                 </div>
               </div>
             )}
+            {!sessionActive && !showFlagInput && (
+              <div className="log-entry">
+                <span className="prompt">$</span> Session inactive. Start a new session to continue.
+              </div>
+            )}
           </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <strong>Quick payloads / hints</strong>
-            <div style={{ display:'flex', gap:8, marginTop:8, flexWrap:'wrap' }}>
-              <button onClick={() => copyPayload(`' OR '1'='1`, 'bypass auth')}>`' OR '1'='1`</button>
-              <button onClick={() => copyPayload(`' OR '1'='1' -- `, 'comment rest')}>`' OR '1'='1' -- `</button>
-              <button onClick={() => copyPayload(`' UNION SELECT username, secret FROM users -- `, 'union hint')}>UNION hint</button>
-              <button onClick={() => copyPayload(`' OR 'a'='a`, 'simple true')}>`' OR 'a'='a`</button>
-            </div>
-            <p style={{ color: '#555', marginTop: 8 }}>
-              Click a payload to copy it to clipboard; then paste into the lab form (username or password) inside the iframe.
-            </p>
-          </div>
-
-          <form onSubmit={submitFlag} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              value={flag}
-              onChange={(e) => setFlag(e.target.value)}
-              placeholder="paste found flag here (e.g. flag{...})"
-              style={{ flex: 1, padding: '8px 10px' }}
-            />
-            <button type="submit" disabled={submitting || !sessionActive}>
-              {submitting ? 'Submitting...' : 'Submit Flag'}
-            </button>
-            <button type="button" onClick={() => { setFlag(''); setMsg(null); }}>Clear</button>
-          </form>
-
-          {msg && <div style={{ marginTop: 8 }}>{msg}</div>}
         </div>
-
-        <aside style={{ borderLeft: '1px solid #f1f1f1', paddingLeft: 12 }}>
-          <div style={{ marginBottom: 12 }}>
-            <strong>Session log</strong>
-            <div style={{ marginTop: 8, maxHeight: 220, overflow: 'auto', padding: 8, background: '#fafafa', borderRadius: 6 }}>
-              {log.length === 0 ? <div style={{ color: '#999' }}>No actions yet.</div> :
-                log.slice().reverse().map((l, i) => <div key={i} style={{ fontSize: 13 }}>{l}</div>)
-              }
+        
+        <div className="vulnerability-list">
+          <h3>Vulnerabilities Found</h3>
+          {foundVulnerabilities.map(vuln => (
+            <div key={vuln.id} className={`vulnerability-item ${vuln.found ? 'found' : ''}`}>
+              <div className={`vuln-severity ${vuln.severity.toLowerCase()}`}>
+                {vuln.severity}
+              </div>
+              <div className="vuln-name">
+                {vuln.name}
+                {vuln.found && <span className="checkmark">✓</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {showFlagInput ? (
+          <div className="flag-submission">
+            <h3>Submit Your Flag</h3>
+            <p>You've found all vulnerabilities! Submit the flag to complete the challenge.</p>
+            <form onSubmit={handleFlagSubmit} className="flag-form">
+              <input
+                type="text"
+                value={flag}
+                onChange={(e) => setFlag(e.target.value)}
+                placeholder="flag{...}"
+                className="flag-input"
+                autoFocus
+              />
+              <button type="submit" className="btn primary">
+                Submit Flag
+              </button>
+            </form>
+            {msg.text && (
+              <div className={`message ${msg.type}`}>
+                {msg.text}
+              </div>
+            )}
+            <div className="hint">
+              <small>Hint: The flag is <code>flag&#123;cyb3rs1m_r0cks!&#125;</code> (visible for demo purposes)</small>
             </div>
           </div>
-
-          <div>
-            <strong>Demo checklist</strong>
-            <ul style={{ paddingLeft: 18 }}>
-              <li>Ensure vulnerable app running at <code>http://localhost:3001</code></li>
-              <li>Start session (5 min TTL)</li>
-              <li>Open lab iframe / new tab and paste payload into username/password</li>
-              <li>Extract the flag from results and submit it</li>
-            </ul>
+        ) : !sessionActive ? (
+          <div className="session-inactive">
+            <p>Your session has ended. Start a new session to continue.</p>
+            <button onClick={startNewSession} className="btn primary">
+              Start New Session
+            </button>
           </div>
-        </aside>
-      </section>
+        ) : null}
+        
+        <div className="session-actions">
+          <button 
+            onClick={onClose || (() => navigate('/learn'))} 
+            className="btn ghost"
+          >
+            ← Back to Learn
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
