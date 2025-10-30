@@ -1,254 +1,231 @@
-import React, { useEffect, useState } from 'react';
-import '../App.css';
+import React, { useState, useEffect, useRef } from 'react'
+import '../App.css'
 
-export default function SingleAttackSession({ onClose }) {
-  const [sessionActive, setSessionActive] = useState(true);
-  const [secondsLeft, setSecondsLeft] = useState(300); // 5 minutes
-  const [flag, setFlag] = useState('');
-  const [msg, setMsg] = useState({ text: '', type: '' });
-  const [log, setLog] = useState([
-    'Initializing attack simulation...',
-    'Connected to target system (192.168.1.100)',
-    'Running initial scan...',
-    'Port 22/tcp open - SSH (OpenSSH 8.2p1)',
-    'Port 80/tcp open - HTTP (Apache/2.4.41)'
-  ]);
-  const [progress, setProgress] = useState(0);
-  const [foundVulnerabilities, setFoundVulnerabilities] = useState([
-    { id: 1, name: 'Weak SSH Credentials', severity: 'High', found: false },
-    { id: 2, name: 'Outdated Apache Version', severity: 'Medium', found: false },
-    { id: 3, name: 'Default Credentials on Admin Panel', severity: 'Critical', found: false }
-  ]);
-  const [showFlagInput, setShowFlagInput] = useState(false);
-  // navigation is handled by parent via onClose prop
-  const terminalRef = React.useRef(null);
+// A simple educational lab. Safe, client-side simulation only.
+const DEMO_FLAG = 'flag{cybersim_lab_demo}'
 
-  // Auto-scroll terminal to bottom when new logs are added
+export default function AttackLab({ onClose }) {
+  const [started, setStarted] = useState(false)
+  const [log, setLog] = useState([])
+  const [checkpoints, setCheckpoints] = useState({
+    openedLab: false,
+    copiedPayload: false,
+    exploited: false,
+    extractedFlag: false,
+    submitted: false,
+  })
+
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState(null)
+  const [flagInput, setFlagInput] = useState('')
+  const [showHint, setShowHint] = useState(false)
+  const terminalRef = useRef(null)
+
   useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [log]);
+    if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight
+  }, [log])
 
-  // Simulate scanning progress
-  useEffect(() => {
-    if (!sessionActive) return;
+  function startLab() {
+    setStarted(true)
+    setLog([`Lab started — ${new Date().toLocaleTimeString()}`])
+    setCheckpoints(c => ({ ...c, openedLab: true }))
+    setMessage(null)
+    setFlagInput('')
+    setUsername('')
+    setPassword('')
+  }
 
-    const timer = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setSessionActive(false);
-          setLog(prev => [...prev, 'Session expired! Time is up.']);
-          return 0;
-        }
-        return prev - 1;
-      });
+  function resetLab() {
+    setStarted(false)
+    setLog([])
+    setCheckpoints({ openedLab: false, copiedPayload: false, exploited: false, extractedFlag: false, submitted: false })
+    setMessage(null)
+    setFlagInput('')
+    setUsername('')
+    setPassword('')
+  }
 
-      setProgress(prev => {
-        const newProgress = Math.min(prev + Math.random() * 5, 100);
-        
-        // Simulate finding vulnerabilities at certain progress points
-        if (newProgress > 30 && !foundVulnerabilities[0].found) {
-          setLog(prev => [...prev, 'Found potential vulnerability: Weak SSH Credentials']);
-          setFoundVulnerabilities(prev => 
-            prev.map(vuln => 
-              vuln.id === 1 ? { ...vuln, found: true } : vuln
-            )
-          );
-        }
-        
-        if (newProgress > 60 && !foundVulnerabilities[1].found) {
-          setLog(prev => [...prev, 'Found potential vulnerability: Outdated Apache Version']);
-          setFoundVulnerabilities(prev => 
-            prev.map(vuln => 
-              vuln.id === 2 ? { ...vuln, found: true } : vuln
-            )
-          );
-        }
-        
-        if (newProgress > 90 && !foundVulnerabilities[2].found) {
-          setLog(prev => [...prev, 'Found critical vulnerability: Default Credentials on Admin Panel']);
-          setFoundVulnerabilities(prev => 
-            prev.map(vuln => 
-              vuln.id === 3 ? { ...vuln, found: true } : vuln
-            )
-          );
-        }
-        
-        if (newProgress >= 100 && !showFlagInput) {
-          setShowFlagInput(true);
-          setLog(prev => [...prev, 'Vulnerability scan complete!']);
-          setLog(prev => [...prev, 'Flag: flag{cyb3rs1m_r0cks!} (This would be hidden in a real scenario)']);
-        }
-        
-        return newProgress;
-      });
-    }, 500);
+  function appendLog(line) {
+    setLog(l => [...l, line])
+  }
 
-    return () => clearInterval(timer);
-  }, [sessionActive, foundVulnerabilities, showFlagInput]);
+  // Simulated vulnerable login handler (client-side safe demonstration)
+  function submitLogin(e) {
+    e?.preventDefault()
+    appendLog(`POST /login -> username=${username} password=${password}`)
 
-  const handleFlagSubmit = (e) => {
-    e.preventDefault();
-    if (flag.toLowerCase() === 'flag{cyb3rs1m_r0cks!}') {
-      setMsg({ text: '✅ Flag submitted successfully! Challenge completed!', type: 'success' });
-      setLog(prev => [...prev, 'Flag verified! Challenge completed successfully!']);
-      // notify parent to close / navigate back when provided
-      setTimeout(() => { if (onClose) onClose(); }, 1200);
+    // naive SQLi-like check: payload contains OR or 1=1
+    const u = (username || '').toLowerCase()
+    if (u.includes("' or ") || u.includes(' or ') || u.includes("1=1") || u.includes("'='1") ) {
+      appendLog('Login bypass successful — authenticated as admin')
+      appendLog('Reading secret file: /var/www/flag.txt')
+      appendLog(`FLAG: ${DEMO_FLAG}`)
+      setCheckpoints(c => ({ ...c, exploited: true, extractedFlag: true }))
+      setMessage({ type: 'success', text: 'Exploit worked — flag revealed in logs.' })
     } else {
-      setMsg({ text: '❌ Invalid flag. Try again!', type: 'error' });
+      setMessage({ type: 'error', text: 'Login failed. Try a SQLi payload in the username (demo).' })
     }
-  };
+  }
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-  
-  const startNewSession = () => {
-    setSessionActive(true);
-    setSecondsLeft(300);
-    setFlag('');
-    setMsg({ text: '', type: '' });
-    setLog([
-      'Initializing new attack simulation...',
-      'Connected to target system (192.168.1.100)',
-      'Running initial scan...',
-      'Port 22/tcp open - SSH (OpenSSH 8.2p1)',
-      'Port 80/tcp open - HTTP (Apache/2.4.41)'
-    ]);
-    setProgress(0);
-    setFoundVulnerabilities(prev => 
-      prev.map(vuln => ({ ...vuln, found: false }))
-    );
-    setShowFlagInput(false);
-  };
+  function copyPayload(p) {
+    navigator.clipboard?.writeText(p).then(() => {
+      appendLog(`Copied payload: ${p}`)
+      setCheckpoints(c => ({ ...c, copiedPayload: true }))
+      setMessage({ type: 'info', text: 'Payload copied to clipboard — paste it into the username field.' })
+    }).catch(() => {
+      setMessage({ type: 'error', text: 'Could not copy to clipboard — copy manually.' })
+    })
+  }
+
+  function runTerminalCommand(cmd) {
+    appendLog(`$ ${cmd}`)
+    const lc = (cmd || '').toLowerCase()
+    if (lc.includes('curl') && lc.includes('flag')) {
+      appendLog('curl http://localhost:3001/flag -> ' + DEMO_FLAG)
+      setCheckpoints(c => ({ ...c, extractedFlag: true }))
+      setMessage({ type: 'success', text: 'Flag fetched via simulated curl.' })
+    } else if (lc.includes('ls') || lc.includes('cat')) {
+      appendLog('Simulated filesystem: /var/www/flag.txt (contains secret)')
+    } else {
+      appendLog('Command executed (simulated). Try `curl http://localhost:3001/flag` or `cat /var/www/flag.txt`')
+    }
+  }
+
+  function submitFlag(e) {
+    e?.preventDefault()
+    if (flagInput.trim() === DEMO_FLAG) {
+      setCheckpoints(c => ({ ...c, submitted: true }))
+      appendLog('Flag submitted: ' + flagInput)
+      setMessage({ type: 'success', text: 'Correct — lab complete. Well done!' })
+    } else {
+      appendLog('Flag submission attempt: ' + flagInput)
+      setMessage({ type: 'error', text: 'Incorrect flag — try again or extract it from the logs/terminal.' })
+    }
+  }
+
+  // compact UI helpers
+  const payloads = ["' OR '1'='1", "' OR '1'='1' -- ", "admin' -- "]
 
   return (
-    <div className="attack-container">
-      <div className="attack-header">
-        <div className="header-content">
-          <h2>Penetration Testing Lab</h2>
-          <div className="session-info">
-            <span className="session-timer">⏱️ {formatTime(secondsLeft)}</span>
-            <span className="session-status">
-              Status: <span className={sessionActive ? 'status-active' : 'status-inactive'}>
-                {sessionActive ? 'ACTIVE' : 'INACTIVE'}
-              </span>
-            </span>
-          </div>
+    <div style={{ padding: 16, maxWidth: 1100, margin: '0 auto', color: '#111' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div>
+          <h2 style={{ margin: '0 0 6px 0' }}>SQL Injection — Student Lab</h2>
+          <div style={{ color: '#666' }}>A short, safe, client-side lab that demonstrates a basic SQL injection workflow.</div>
         </div>
-        {!sessionActive && !showFlagInput && (
-          <button onClick={startNewSession} className="btn primary">
-            Start New Session
-          </button>
-        )}
-      </div>
-      
-      <div className="attack-content">
-        <div className="terminal-window">
-          <div className="terminal-header">
-            <div className="terminal-buttons">
-              <span className="red"></span>
-              <span className="yellow"></span>
-              <span className="green"></span>
-            </div>
-            <div className="terminal-title">attack-simulator@cybersim:~$</div>
-          </div>
-          <div className="terminal-content" ref={terminalRef}>
-            {log.map((entry, i) => (
-              <div key={i} className="log-entry">
-                <span className="prompt">$</span> {entry}
-              </div>
-            ))}
-            {progress < 100 && sessionActive && (
-              <div className="log-entry">
-                <span className="prompt">$</span> Scanning... {Math.round(progress)}%
-                <div className="progress-bar">
-                  <div className="progress" style={{ width: `${progress}%` }}></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn ghost" onClick={() => { if (onClose) onClose() }}>Exit</button>
+          <button className="btn" onClick={resetLab}>Reset</button>
+          {!started ? <button className="btn primary" onClick={startLab}>Start Lab</button> : null}
+        </div>
+      </header>
+
+      <main style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 16, marginTop: 12 }}>
+        <section style={{ textAlign: 'left' }}>
+          <h3>Overview</h3>
+          <p>This lab guides the learner through a minimal SQL injection scenario: a naive login form that is vulnerable to a simple boolean-based injection. The goal is to bypass login and extract the secret flag.</p>
+
+          <h4>Learning objectives</h4>
+          <ul>
+            <li>Understand how naive input handling can be abused with SQL injection.</li>
+            <li>Practice a safe, simulated exploitation workflow (form payloads and simple commands).</li>
+            <li>Extract and submit a flag to demonstrate success.</li>
+          </ul>
+
+          <h4>Steps</h4>
+          <ol>
+            <li>Start the lab session.</li>
+            <li>Open the simulated vulnerable login form and try a payload.</li>
+            <li>Use the simulated terminal or form to retrieve the flag.</li>
+            <li>Submit the extracted flag in the submission box.</li>
+          </ol>
+
+          <div style={{ marginTop: 12 }}>
+            <h4>Simulated vulnerable page</h4>
+            <div style={{ border: '1px solid #ddd', padding: 12, borderRadius: 8, background: '#fafafa' }}>
+              <form onSubmit={submitLogin}>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{ fontSize: 13 }}>Username</label>
+                  <input value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="username" style={{ width: '100%', padding: 8, marginTop: 6 }} />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{ fontSize: 13 }}>Password</label>
+                  <input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="password" style={{ width: '100%', padding: 8, marginTop: 6 }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn primary" disabled={!started} type="submit">Login</button>
+                  <button type="button" className="btn ghost" onClick={()=>{ setUsername(''); setPassword(''); }}>Clear</button>
+                </div>
+              </form>
+
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 13, color: '#444' }}>Quick payloads</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  {payloads.map(p => (
+                    <button key={p} className="btn" onClick={()=>copyPayload(p)} disabled={!started}>{p}</button>
+                  ))}
                 </div>
               </div>
-            )}
-            {!sessionActive && !showFlagInput && (
-              <div className="log-entry">
-                <span className="prompt">$</span> Session inactive. Start a new session to continue.
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-        
-        <div className="task-checkpoints" style={{ marginBottom: 12 }}>
-          <h3>Task & checkpoints</h3>
-          <p style={{ marginTop: 4, color: '#444' }}>Objective: Bypass the naive login and extract the secret flag.</p>
-          <ol style={{ textAlign: 'left', paddingLeft: 18 }}>
-            <li><input type="checkbox" checked={sessionActive} readOnly /> Start the session</li>
-            <li><input type="checkbox" checked={Math.round(progress) >= 30} readOnly /> Discover initial vulnerabilities</li>
-            <li><input type="checkbox" checked={Math.round(progress) >= 100 || showFlagInput} readOnly /> Complete scan / reveal flag</li>
-            <li><input type="checkbox" checked={msg.type === 'success'} readOnly /> Submit the flag</li>
-          </ol>
-        </div>
 
-        <div className="vulnerability-list">
-          <h3>Vulnerabilities Found</h3>
-          {foundVulnerabilities.map(vuln => (
-            <div key={vuln.id} className={`vulnerability-item ${vuln.found ? 'found' : ''}`}>
-              <div className={`vuln-severity ${vuln.severity.toLowerCase()}`}>
-                {vuln.severity}
+          <div style={{ marginTop: 16 }}>
+            <h4>Simulated terminal</h4>
+            <div style={{ border: '1px solid #ddd', padding: 8, borderRadius: 8, background: '#000', color: '#d1d5db' }}>
+              <div ref={terminalRef} style={{ maxHeight: 160, overflow: 'auto', padding: 8, fontFamily: 'monospace', fontSize: 13, background: '#071018', borderRadius: 6 }}>
+                {log.length === 0 ? <div style={{ color: '#6b7280' }}>Terminal output will appear here.</div> : log.map((l,i)=>(<div key={i}><span style={{ color: '#6ee7b7' }}>$</span> {l}</div>))}
               </div>
-              <div className="vuln-name">
-                {vuln.name}
-                {vuln.found && <span className="checkmark">✓</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {showFlagInput ? (
-          <div className="flag-submission">
-            <h3>Submit Your Flag</h3>
-            <p>You've found all vulnerabilities! Submit the flag to complete the challenge.</p>
-            <form onSubmit={handleFlagSubmit} className="flag-form">
-              <input
-                type="text"
-                value={flag}
-                onChange={(e) => setFlag(e.target.value)}
-                placeholder="flag{...}"
-                className="flag-input"
-                autoFocus
-              />
-              <button type="submit" className="btn primary">
-                Submit Flag
-              </button>
-            </form>
-            {msg.text && (
-              <div className={`message ${msg.type}`}>
-                {msg.text}
-              </div>
-            )}
-            <div className="hint">
-              <small>Hint: The flag is <code>flag&#123;cyb3rs1m_r0cks!&#125;</code> (visible for demo purposes)</small>
+              <TerminalInput onRun={(cmd)=>{ if (!started) { setMessage({ type:'error', text: 'Start the lab first.' }); return } runTerminalCommand(cmd) }} />
             </div>
           </div>
-        ) : !sessionActive ? (
-          <div className="session-inactive">
-            <p>Your session has ended. Start a new session to continue.</p>
-            <button onClick={startNewSession} className="btn primary">
-              Start New Session
-            </button>
+        </section>
+
+        <aside style={{ textAlign: 'left' }}>
+          <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+            <h4>Checkpoints</h4>
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              <li><input type="checkbox" checked={checkpoints.openedLab} readOnly /> Open lab</li>
+              <li><input type="checkbox" checked={checkpoints.copiedPayload} readOnly /> Copied payload</li>
+              <li><input type="checkbox" checked={checkpoints.exploited} readOnly /> Exploited the form</li>
+              <li><input type="checkbox" checked={checkpoints.extractedFlag} readOnly /> Extracted flag</li>
+              <li><input type="checkbox" checked={checkpoints.submitted} readOnly /> Submitted flag</li>
+            </ul>
+
+            <div style={{ marginTop: 12 }}>
+              <h4>Submit flag</h4>
+              <form onSubmit={submitFlag}>
+                <input value={flagInput} onChange={(e)=>setFlagInput(e.target.value)} placeholder="flag{...}" style={{ width: '100%', padding: 8, marginBottom: 8 }} />
+                <button className="btn primary" type="submit" disabled={!started}>Submit</button>
+              </form>
+              {message ? <div style={{ marginTop: 8, color: message.type==='success' ? 'green' : (message.type==='error' ? 'crimson' : '#444') }}>{message.text}</div> : null}
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <h4>Hints</h4>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={showHint} onChange={()=>setShowHint(s=>!s)} /> Show hint</label>
+              {showHint ? <div style={{ marginTop: 8, color: '#444' }}>Try payloads that turn the WHERE clause true, e.g. <code>' OR '1'='1</code>. You can also use the terminal: <code>curl http://localhost:3001/flag</code>.</div> : null}
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <h4>Tools / quick start</h4>
+              <pre style={{ background:'#0b1220', color:'#d1d5db', padding:8, borderRadius:6, fontSize:12 }}># Example (replace with a real vulnerable image)
+docker run --rm -p 3001:3001 some-vuln-image
+# then open http://localhost:3001</pre>
+            </div>
           </div>
-        ) : null}
-        
-        <div className="session-actions">
-          <button 
-            onClick={() => { if (onClose) onClose(); }} 
-            className="btn ghost"
-          >
-            ← Back to Learn
-          </button>
-        </div>
-      </div>
+        </aside>
+      </main>
     </div>
-  );
+  )
+}
+
+function TerminalInput({ onRun }) {
+  const [cmd, setCmd] = useState('')
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+      <input value={cmd} onChange={(e)=>setCmd(e.target.value)} placeholder="run command (simulated) e.g. curl http://localhost:3001/flag" style={{ flex: 1, padding: 8 }} />
+      <button className="btn" onClick={()=>{ onRun(cmd); setCmd('') }}>Run</button>
+    </div>
+  )
 }
