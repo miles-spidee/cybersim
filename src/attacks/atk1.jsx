@@ -108,11 +108,11 @@ export default function AttackLab({ onClose }) {
   const payloads = ["' OR '1'='1", "' OR '1'='1' -- ", "admin' -- "]
 
   return (
-    <div style={{ padding: 16, maxWidth: 1100, margin: '0 auto', color: '#111' }}>
+    <div style={{ padding: 16, maxWidth: 1100, margin: '0 auto', color: '#fff' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
           <h2 style={{ margin: '0 0 6px 0' }}>SQL Injection — Student Lab</h2>
-          <div style={{ color: '#666' }}>A short, safe, client-side lab that demonstrates a basic SQL injection workflow.</div>
+          <div style={{ color: '#cbd5e1' }}>A short, safe, client-side lab that demonstrates a basic SQL injection workflow.</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn ghost" onClick={() => { if (onClose) onClose() }}>Exit</button>
@@ -124,7 +124,7 @@ export default function AttackLab({ onClose }) {
       <main style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 16, marginTop: 12 }}>
         <section style={{ textAlign: 'left' }}>
           <h3>Overview</h3>
-          <p>This lab guides the learner through a minimal SQL injection scenario: a naive login form that is vulnerable to a simple boolean-based injection. The goal is to bypass login and extract the secret flag.</p>
+          <p style={{ color: '#e6eef8' }}>This lab guides the learner through a minimal SQL injection scenario: a naive login form that is vulnerable to a simple boolean-based injection. The goal is to bypass login and extract the secret flag.</p>
 
           <h4>Learning objectives</h4>
           <ul>
@@ -147,11 +147,11 @@ export default function AttackLab({ onClose }) {
               <form onSubmit={submitLogin}>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontSize: 13 }}>Username</label>
-                  <input value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="username" style={{ width: '100%', padding: 8, marginTop: 6 }} />
+                  <input value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="username" style={{ width: '100%', padding: 8, marginTop: 6, color: '#000' }} />
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontSize: 13 }}>Password</label>
-                  <input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="password" style={{ width: '100%', padding: 8, marginTop: 6 }} />
+                  <input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="password" style={{ width: '100%', padding: 8, marginTop: 6, color: '#000' }} />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn primary" disabled={!started} type="submit">Login</button>
@@ -160,7 +160,7 @@ export default function AttackLab({ onClose }) {
               </form>
 
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 13, color: '#444' }}>Quick payloads</div>
+                <div style={{ fontSize: 13, color: '#cbd5e1' }}>Quick payloads</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   {payloads.map(p => (
                     <button key={p} className="btn" onClick={()=>copyPayload(p)} disabled={!started}>{p}</button>
@@ -174,7 +174,7 @@ export default function AttackLab({ onClose }) {
             <h4>Simulated terminal</h4>
             <div style={{ border: '1px solid #ddd', padding: 8, borderRadius: 8, background: '#000', color: '#d1d5db' }}>
               <div ref={terminalRef} style={{ maxHeight: 160, overflow: 'auto', padding: 8, fontFamily: 'monospace', fontSize: 13, background: '#071018', borderRadius: 6 }}>
-                {log.length === 0 ? <div style={{ color: '#6b7280' }}>Terminal output will appear here.</div> : log.map((l,i)=>(<div key={i}><span style={{ color: '#6ee7b7' }}>$</span> {l}</div>))}
+                {log.length === 0 ? <div style={{ color: '#94a3b8' }}>Terminal output will appear here.</div> : log.map((l,i)=>(<div key={i}><span style={{ color: '#6ee7b7' }}>$</span> {l}</div>))}
               </div>
               <TerminalInput onRun={(cmd)=>{ if (!started) { setMessage({ type:'error', text: 'Start the lab first.' }); return } runTerminalCommand(cmd) }} />
             </div>
@@ -195,16 +195,16 @@ export default function AttackLab({ onClose }) {
             <div style={{ marginTop: 12 }}>
               <h4>Submit flag</h4>
               <form onSubmit={submitFlag}>
-                <input value={flagInput} onChange={(e)=>setFlagInput(e.target.value)} placeholder="flag{...}" style={{ width: '100%', padding: 8, marginBottom: 8 }} />
+                <input value={flagInput} onChange={(e)=>setFlagInput(e.target.value)} placeholder="flag{...}" style={{ width: '100%', padding: 8, marginBottom: 8, color: '#000' }} />
                 <button className="btn primary" type="submit" disabled={!started}>Submit</button>
               </form>
-              {message ? <div style={{ marginTop: 8, color: message.type==='success' ? 'green' : (message.type==='error' ? 'crimson' : '#444') }}>{message.text}</div> : null}
+              {message ? <div style={{ marginTop: 8, color: message.type==='success' ? '#86efac' : (message.type==='error' ? '#ff6b6b' : '#cbd5e1') }}>{message.text}</div> : null}
             </div>
 
             <div style={{ marginTop: 12 }}>
               <h4>Hints</h4>
               <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={showHint} onChange={()=>setShowHint(s=>!s)} /> Show hint</label>
-              {showHint ? <div style={{ marginTop: 8, color: '#444' }}>Try payloads that turn the WHERE clause true, e.g. <code>' OR '1'='1</code>. You can also use the terminal: <code>curl http://localhost:3001/flag</code>.</div> : null}
+              {showHint ? <div style={{ marginTop: 8, color: '#cbd5e1' }}>Try payloads that turn the WHERE clause true, e.g. <code>' OR '1'='1</code>. You can also use the terminal: <code>curl http://localhost:3001/flag</code>.</div> : null}
             </div>
 
             <div style={{ marginTop: 12 }}>
@@ -224,7 +224,7 @@ function TerminalInput({ onRun }) {
   const [cmd, setCmd] = useState('')
   return (
     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-      <input value={cmd} onChange={(e)=>setCmd(e.target.value)} placeholder="run command (simulated) e.g. curl http://localhost:3001/flag" style={{ flex: 1, padding: 8 }} />
+      <input value={cmd} onChange={(e)=>setCmd(e.target.value)} placeholder="run command (simulated) e.g. curl http://localhost:3001/flag" style={{ flex: 1, padding: 8, background:'#0b1220', color:'#fff', border:'1px solid #23303a', borderRadius:6 }} />
       <button className="btn" onClick={()=>{ onRun(cmd); setCmd('') }}>Run</button>
     </div>
   )
