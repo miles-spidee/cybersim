@@ -355,9 +355,6 @@ function Defense() {
             <div className="progress-bar">
               <div className="progress" style={{ width: `${progress}%` }}></div>
             </div>
-            <div className="progress-text">
-              Step {currentStep + 1} of {activeModule.steps.length}: {activeModule.steps[currentStep]}
-            </div>
           </div>
           <button className="btn ghost" onClick={resetModule}>Exit Lab</button>
         </div>
@@ -417,16 +414,7 @@ function Defense() {
             <span className="status warn">Needs Improvement</span>
           </div>
 
-          <div className="current-task">
-            <h3>Current Task</h3>
-            <div className="task-box">
-              <span className="step-badge">Step {currentStep + 1}</span>
-              <p>{activeModule.steps[currentStep]}</p>
-              <button className="btn primary" onClick={() => taskCompleted && completeStep()}>
-                Continue to Next Step
-              </button>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>
