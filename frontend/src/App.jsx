@@ -18,6 +18,8 @@ import Defense from "./pages/Defense";
 import Login from "./pages/Login";
 import GetStarted from "./pages/GetStarted";
 import Profile from "./pages/Profile";
+import Articles from "./pages/Articles";
+import ArticleDetail from "./pages/ArticleDetail";
 
 // =============== Navigation Bar ===============
 function Navigation() {
@@ -158,6 +160,9 @@ function App() {
         <Route path="/learn" element={<Learn />} />
         <Route path="/learn/attack" element={<AttackList />} />
         <Route path="/learn/defense" element={<DefenseList />} />
+        <Route path="/articles" element={<Articles />} />
+        <Route path="/articles/:topic" element={<ArticleDetail />} />
+
 
         {/* ⚔️ Attack Labs */}
         <Route

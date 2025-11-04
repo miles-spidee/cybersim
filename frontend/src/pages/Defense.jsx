@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import "./Defense.css"; // make sure this file exists
+import { useNavigate } from "react-router-dom";
+import "./Defense.css"; // Ensure this file exists for styling
 
 export default function Defense() {
+  const navigate = useNavigate();
+
   const [input, setInput] = useState("");
   const [outputs, setOutputs] = useState([]);
   const [history, setHistory] = useState([]);
@@ -9,6 +12,7 @@ export default function Defense() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const [booted, setBooted] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false); // ✅ success modal trigger
 
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
@@ -30,11 +34,11 @@ export default function Defense() {
 
   // ================== CHECKLIST ==================
   const initialChecklist = [
-    { id: "firewall", title: "Enable firewall (ufw)", done: false, hint: "sudo ufw enable" },
-    { id: "update", title: "Update & upgrade packages", done: false, hint: "sudo apt update && sudo apt upgrade" },
-    { id: "sshd", title: "Disable root SSH login", done: false, hint: "sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl restart sshd" },
-    { id: "chmod", title: "Secure /root permissions", done: false, hint: "chmod 700 /root" },
-    { id: "guest", title: "Disable guest account", done: false, hint: "sudo systemctl disable guest-account" },
+    { id: "firewall", title: "Enable firewall (ufw)", done: false },
+    { id: "update", title: "Update & upgrade packages", done: false },
+    { id: "sshd", title: "Disable root SSH login", done: false },
+    { id: "chmod", title: "Secure /root permissions", done: false },
+    { id: "guest", title: "Disable guest account", done: false},
   ];
   const [checklist, setChecklist] = useState(initialChecklist);
 
@@ -42,7 +46,8 @@ export default function Defense() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   const scrollBottom = () => {
     requestAnimationFrame(() => {
-      if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      if (terminalRef.current)
+        terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     });
   };
 
@@ -61,6 +66,13 @@ export default function Defense() {
     const done = checklist.filter((c) => c.done).length;
     return Math.round((done / checklist.length) * 100);
   };
+
+  // ✅ Show popup when progress hits 100%
+  useEffect(() => {
+    if (computeProgress() === 100) {
+      setShowSuccess(true);
+    }
+  }, [checklist]);
 
   // ================== COMMANDS ==================
   const COMMANDS = [
@@ -87,7 +99,9 @@ export default function Defense() {
       },
     },
     {
-      match: (cmd) => /^(chmod\s+700\s+\/root)$/.test(cmd) || /^(sudo\s+chmod\s+700\s+\/root)$/.test(cmd),
+      match: (cmd) =>
+        /^(chmod\s+700\s+\/root)$/.test(cmd) ||
+        /^(sudo\s+chmod\s+700\s+\/root)$/.test(cmd),
       run: async () => {
         await pushOut("Permissions for /root updated to 700.");
         markDone("chmod");
@@ -166,7 +180,8 @@ export default function Defense() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (history.length === 0) return;
-      const nextIndex = histIndex === null ? 0 : Math.min(history.length - 1, histIndex + 1);
+      const nextIndex =
+        histIndex === null ? 0 : Math.min(history.length - 1, histIndex + 1);
       setHistIndex(nextIndex);
       setInput(history[nextIndex] || "");
     } else if (e.key === "ArrowDown") {
@@ -177,11 +192,11 @@ export default function Defense() {
       setHistIndex(nextIndex >= 0 ? nextIndex : null);
       setInput(nextIndex >= 0 ? history[nextIndex] : "");
     } else if (e.key === "Tab") {
-      // basic autocomplete: complete "sudo ufw enable" or "sudo apt update"
       e.preventDefault();
       const v = input.trim();
       if (v === "s" || v === "su") setInput("sudo ufw enable");
-      else if (v.startsWith("sudo a")) setInput("sudo apt update && sudo apt upgrade");
+      else if (v.startsWith("sudo a"))
+        setInput("sudo apt update && sudo apt upgrade");
     }
   };
 
@@ -198,14 +213,16 @@ export default function Defense() {
       await delay(400);
       await pushOut("Type 'help' for a list of commands.", "sys");
       await delay(400);
-      await pushOut("This environment is simulated and will not modify your real system.", "sys");
+      await pushOut(
+        "This environment is simulated and will not modify your real system.",
+        "sys"
+      );
       await delay(400);
       await pushOut("Start by enabling the firewall and updating packages.", "sys");
       setBooted(true);
     };
     boot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username]);
+  }, [username, booted]);
 
   // ================== RENDER ==================
   return (
@@ -260,10 +277,30 @@ export default function Defense() {
 
           <div className="log-footer">
             <p>Logs: {history.length} commands run</p>
-            <button onClick={() => setInput("sudo ufw enable")}>Try: Enable Firewall</button>
+            <button onClick={() => setInput("sudo ufw enable")}>
+              Try: Enable Firewall
+            </button>
           </div>
         </div>
       </div>
+
+      {/* ✅ Success Popup */}
+      {showSuccess && (
+        <div style={popup.overlay}>
+          <div style={popup.box}>
+            <h2>✅ System Hardening Completed!</h2>
+            <p>Great job! You have completed all security steps successfully.</p>
+            <div style={popup.actions}>
+              <button className="btn primary" onClick={() => navigate("/")}>
+                Return Home
+              </button>
+              <button className="btn ghost" onClick={() => setShowSuccess(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -280,3 +317,32 @@ function TerminalLine({ type, text }) {
       : "out";
   return <pre className={`line ${color}`}>{text}</pre>;
 }
+
+/* ---------- popup styles ---------- */
+const popup = {
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0, 0, 0, 0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+  },
+  box: {
+    background: "#0b1220",
+    padding: "24px 28px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    color: "#fff",
+    textAlign: "center",
+    width: "400px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.6)",
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "10px",
+    marginTop: "16px",
+  },
+};
