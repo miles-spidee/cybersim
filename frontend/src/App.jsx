@@ -8,42 +8,58 @@ import {
   useNavigate,
 } from "react-router-dom";
 import "./App.css";
+
 import SingleAttackSession from "./attacks/atk1";
 import Learn from "./pages/Learn";
 import Defense from "./pages/Defense";
 import Login from "./pages/Login";
 import GetStarted from "./pages/GetStarted";
-
+import Profile from "./pages/Profile"; // ✅ Add Profile page
 
 // =============== Navigation Bar ===============
 function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
+
   const isActive = (path) => location.pathname === path;
 
   // Hide navbar on login page
   if (location.pathname === "/login") return null;
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <nav className="top-nav">
       <div className="brand">
         <span className="brand-text">Cybersim</span>
       </div>
+
       <div className="nav-actions">
         <Link to="/" className={`nav-link ${isActive("/") ? "active" : ""}`}>
           Home
         </Link>
+
         <Link
           to="/get-started"
           className={`nav-link ${isActive("/get-started") ? "active" : ""}`}
         >
           Get started
         </Link>
+
         <Link
           to="/articles"
           className={`nav-link ${isActive("/articles") ? "active" : ""}`}
         >
           Articles
         </Link>
+
         <Link
           to="/learn"
           className={`nav-link ${
@@ -56,9 +72,34 @@ function Navigation() {
         >
           Learn
         </Link>
-        <Link to="/login" className="nav-link login">
-          Log in
-        </Link>
+
+        {/* ✅ Show profile if logged in, else show login */}
+        {user ? (
+          <>
+            <Link
+              to="/profile"
+              className={`nav-link ${isActive("/profile") ? "active" : ""}`}
+            >
+              {user.username || "Profile"}
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="nav-link logout-btn"
+              style={{
+                background: "none",
+                border: "none",
+                color: "#f55",
+                cursor: "pointer",
+              }}
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <Link to="/login" className="nav-link login">
+            Log in
+          </Link>
+        )}
       </div>
     </nav>
   );
@@ -111,11 +152,14 @@ function App() {
         <Route path="/learn" element={<Learn />} />
         <Route path="/defense" element={<Defense />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} /> {/* ✅ Profile route */}
         <Route
           path="/attack"
           element={
             <main style={{ paddingTop: "1.25rem" }}>
-              <SingleAttackSession onClose={() => (window.location.href = "/")} />
+              <SingleAttackSession
+                onClose={() => (window.location.href = "/")}
+              />
             </main>
           }
         />

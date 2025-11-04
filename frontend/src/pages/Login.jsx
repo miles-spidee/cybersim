@@ -23,7 +23,7 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  const BASE_URL = "http://localhost:6000/api/auth"; // backend API
+  const BASE_URL = "http://localhost:6060/api/auth"; // your backend
 
   // ==================== HANDLE LOGIN ====================
   const handleLogin = async (e) => {
@@ -32,6 +32,7 @@ export default function Login() {
     setIsError(false);
 
     try {
+      console.log("Sending login request to:", `${BASE_URL}/login`);
       const res = await fetch(`${BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,22 +40,45 @@ export default function Login() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Login failed");
+      console.log("Login response:", { status: res.status, data });
 
+      if (!res.ok) {
+        throw new Error(data.message || `Login failed with status ${res.status}`);
+      }
+
+      if (!data.token) {
+        throw new Error("No token received from server");
+      }
+
+      // ✅ Save token + user object to localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       setMessage("✅ Login successful!");
-      setTimeout(() => navigate("/learn"), 1000);
+      setTimeout(() => navigate("/profile"), 1000); // ✅ redirect to Profile page
     } catch (err) {
+      console.error("Login error:", err);
       setIsError(true);
-      setMessage(`❌ ${err.message}`);
+      setMessage(`❌ ${err.message || "An error occurred during login"}`);
     }
   };
 
   // ==================== HANDLE REGISTER ====================
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (!username.trim() || !registerEmail.trim() || !registerPassword) {
+      setIsError(true);
+      setMessage("⚠️ All fields are required!");
+      return;
+    }
+
+    if (registerPassword.length < 6) {
+      setIsError(true);
+      setMessage("⚠️ Password must be at least 6 characters long!");
+      return;
+    }
+
     if (registerPassword !== confirmPassword) {
       setIsError(true);
       setMessage("⚠️ Passwords do not match!");
@@ -65,24 +89,41 @@ export default function Login() {
     setIsError(false);
 
     try {
+      console.log("Sending registration request with:", {
+        username,
+        email: registerEmail,
+      });
       const res = await fetch(`${BASE_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username,
-          email: registerEmail,
+          username: username.trim(),
+          email: registerEmail.trim().toLowerCase(),
           password: registerPassword,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registration failed");
+      console.log("Registration response:", { status: res.status, data });
+
+      if (!res.ok) {
+        throw new Error(
+          data.message || `Registration failed with status ${res.status}`
+        );
+      }
+
+      // Clear fields on success
+      setUsername("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+      setConfirmPassword("");
 
       setMessage("🎉 Account created successfully! Please log in.");
-      setTimeout(() => setTab("login"), 1000);
+      setTimeout(() => setTab("login"), 2000);
     } catch (err) {
+      console.error("Registration error:", err);
       setIsError(true);
-      setMessage(`❌ ${err.message}`);
+      setMessage(`❌ ${err.message || "An error occurred during registration"}`);
     }
   };
 
