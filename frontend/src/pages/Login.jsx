@@ -6,10 +6,12 @@ export default function Login() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("login");
 
+  // Login state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
 
+  // Register state
   const [username, setUsername] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
@@ -17,22 +19,74 @@ export default function Login() {
   const [showRegPass, setShowRegPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  const handleLogin = (e) => {
+  // Message states
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+
+  const BASE_URL = "http://localhost:6000/api/auth"; // backend API
+
+  // ==================== HANDLE LOGIN ====================
+  const handleLogin = async (e) => {
     e.preventDefault();
-    alert("✅ Login simulated");
-    navigate("/learn");
+    setMessage("Authenticating...");
+    setIsError(false);
+
+    try {
+      const res = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Login failed");
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.user.username);
+
+      setMessage("✅ Login successful!");
+      setTimeout(() => navigate("/learn"), 1000);
+    } catch (err) {
+      setIsError(true);
+      setMessage(`❌ ${err.message}`);
+    }
   };
 
-  const handleRegister = (e) => {
+  // ==================== HANDLE REGISTER ====================
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (registerPassword !== confirmPassword) {
-      alert("⚠️ Passwords do not match!");
+      setIsError(true);
+      setMessage("⚠️ Passwords do not match!");
       return;
     }
-    alert("🎉 Account created! Please log in.");
-    setTab("login");
+
+    setMessage("Creating account...");
+    setIsError(false);
+
+    try {
+      const res = await fetch(`${BASE_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          email: registerEmail,
+          password: registerPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Registration failed");
+
+      setMessage("🎉 Account created successfully! Please log in.");
+      setTimeout(() => setTab("login"), 1000);
+    } catch (err) {
+      setIsError(true);
+      setMessage(`❌ ${err.message}`);
+    }
   };
 
+  // ==================== FRONTEND UI ====================
   return (
     <div
       className="app-login"
@@ -47,7 +101,7 @@ export default function Login() {
         overflow: "hidden",
       }}
     >
-      {/* 🟣 FIXED BACK BUTTON */}
+      {/* 🟣 Back Button */}
       <button
         onClick={() => navigate("/")}
         style={{
@@ -75,7 +129,7 @@ export default function Login() {
         ← Back
       </button>
 
-      {/* 🔰 Brand Header */}
+      {/* 🔰 Header */}
       <h1
         style={{
           fontSize: "2.5rem",
@@ -100,7 +154,7 @@ export default function Login() {
         mastering attacks, and hardening environments — safely and interactively.
       </p>
 
-      {/* 🛡️ Shield */}
+      {/* 🛡️ Shield Icon */}
       <div
         style={{
           position: "relative",
@@ -145,7 +199,7 @@ export default function Login() {
         </svg>
       </div>
 
-      {/* 🧩 Card */}
+      {/* 🧩 Login/Register Card */}
       <div
         className="login-card"
         style={{
@@ -209,7 +263,7 @@ export default function Login() {
           </button>
         </div>
 
-        {/* Login Form */}
+        {/* ================= LOGIN ================= */}
         {tab === "login" && (
           <form onSubmit={handleLogin}>
             <h2
@@ -256,6 +310,15 @@ export default function Login() {
               Sign In
             </button>
 
+            {message && (
+              <p
+                className={`message ${isError ? "error" : "success"}`}
+                style={{ marginTop: "1rem" }}
+              >
+                {message}
+              </p>
+            )}
+
             <p style={altLink}>
               Don’t have an account?{" "}
               <span
@@ -268,7 +331,7 @@ export default function Login() {
           </form>
         )}
 
-        {/* Register Form */}
+        {/* ================= REGISTER ================= */}
         {tab === "register" && (
           <form onSubmit={handleRegister}>
             <h2
@@ -350,6 +413,15 @@ export default function Login() {
               Create Account
             </button>
 
+            {message && (
+              <p
+                className={`message ${isError ? "error" : "success"}`}
+                style={{ marginTop: "1rem" }}
+              >
+                {message}
+              </p>
+            )}
+
             <p style={altLink}>
               Already have an account?{" "}
               <span
@@ -366,6 +438,7 @@ export default function Login() {
   );
 }
 
+// ===== Inline Styles =====
 const inputStyle = {
   width: "100%",
   marginBottom: "1rem",
