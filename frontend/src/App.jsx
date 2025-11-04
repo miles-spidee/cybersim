@@ -9,18 +9,20 @@ import {
 } from "react-router-dom";
 import "./App.css";
 
+// ==== Page Imports ====
 import SingleAttackSession from "./attacks/atk1";
 import Learn from "./pages/Learn";
+import AttackList from "./pages/AttackList";
+import DefenseList from "./pages/DefenseList";
 import Defense from "./pages/Defense";
 import Login from "./pages/Login";
 import GetStarted from "./pages/GetStarted";
-import Profile from "./pages/Profile"; // ✅ Add Profile page
+import Profile from "./pages/Profile";
 
 // =============== Navigation Bar ===============
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-
   const isActive = (path) => location.pathname === path;
 
   // Hide navbar on login page
@@ -73,7 +75,6 @@ function Navigation() {
           Learn
         </Link>
 
-        {/* ✅ Show profile if logged in, else show login */}
         {user ? (
           <>
             <Link
@@ -147,21 +148,43 @@ function App() {
     <div id="root" className={!isLoginPage ? "app-bg" : "app-login"}>
       <Navigation />
       <Routes>
+        {/* 🌍 General Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/get-started" element={<GetStarted />} />
-        <Route path="/learn" element={<Learn />} />
-        <Route path="/defense" element={<Defense />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} /> {/* ✅ Profile route */}
+        <Route path="/profile" element={<Profile />} />
+
+        {/* 🎓 Learning Routes */}
+        <Route path="/learn" element={<Learn />} />
+        <Route path="/learn/attack" element={<AttackList />} />
+        <Route path="/learn/defense" element={<DefenseList />} />
+
+        {/* ⚔️ Attack Labs */}
         <Route
-          path="/attack"
-          element={
-            <main style={{ paddingTop: "1.25rem" }}>
-              <SingleAttackSession
-                onClose={() => (window.location.href = "/")}
-              />
-            </main>
-          }
+          path="/attack/sql"
+          element={<SingleAttackSession title="SQL Injection Lab" />}
+        />
+        <Route
+          path="/attack/xss"
+          element={<SingleAttackSession title="Cross-Site Scripting Lab" />}
+        />
+        <Route
+          path="/attack/phishing"
+          element={<SingleAttackSession title="Phishing Simulation" />}
+        />
+
+        {/* 🛡️ Defense Labs */}
+        <Route
+          path="/defense/system-hardening"
+          element={<Defense title="OS System Hardening Lab" />}
+        />
+        <Route
+          path="/defense/firewall"
+          element={<Defense title="Firewall Configuration Lab" />}
+        />
+        <Route
+          path="/defense/network-security"
+          element={<Defense title="Network Security Lab" />}
         />
       </Routes>
     </div>

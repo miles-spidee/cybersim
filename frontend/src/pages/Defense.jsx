@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import "./Defense.css"; // <-- Make sure this file exists (you already have it)
+import "./Defense.css"; // make sure this file exists
 
 export default function Defense() {
   const [input, setInput] = useState("");
@@ -12,6 +12,21 @@ export default function Defense() {
 
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
+
+  // ================== USERNAME (dynamic prompt) ==================
+  const [username, setUsername] = useState("guest");
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.username) setUsername(parsed.username);
+        else if (parsed.email) setUsername(parsed.email.split("@")[0]);
+      } catch {
+        setUsername("guest");
+      }
+    }
+  }, []);
 
   // ================== CHECKLIST ==================
   const initialChecklist = [
@@ -132,6 +147,7 @@ export default function Defense() {
     const cmd = raw.trim();
     if (!cmd) return;
     setHistory((h) => [cmd, ...h].slice(0, 50));
+    setHistIndex(null);
     setInput("");
     setOutputs((o) => [...o, { type: "cmd", text: `$ ${cmd}` }]);
     setIsProcessing(true);
@@ -141,24 +157,31 @@ export default function Defense() {
     else await pushOut(`bash: ${cmd.split(" ")[0]}: command not found`, "err");
 
     setIsProcessing(false);
-
-    // Example backend log (optional)
-    // await fetch("http://localhost:5000/api/defense/log", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     userId: "arunaw01",
-    //     command: cmd,
-    //     output: "Simulated output",
-    //     success: !!match,
-    //   }),
-    // });
   };
 
   const onKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleCommand(input);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (history.length === 0) return;
+      const nextIndex = histIndex === null ? 0 : Math.min(history.length - 1, histIndex + 1);
+      setHistIndex(nextIndex);
+      setInput(history[nextIndex] || "");
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (history.length === 0) return;
+      if (histIndex === null) return;
+      const nextIndex = histIndex - 1;
+      setHistIndex(nextIndex >= 0 ? nextIndex : null);
+      setInput(nextIndex >= 0 ? history[nextIndex] : "");
+    } else if (e.key === "Tab") {
+      // basic autocomplete: complete "sudo ufw enable" or "sudo apt update"
+      e.preventDefault();
+      const v = input.trim();
+      if (v === "s" || v === "su") setInput("sudo ufw enable");
+      else if (v.startsWith("sudo a")) setInput("sudo apt update && sudo apt upgrade");
     }
   };
 
@@ -171,7 +194,7 @@ export default function Defense() {
   useEffect(() => {
     if (booted) return;
     const boot = async () => {
-      await pushOut("Welcome to Cybersim — System Hardening Lab (simulated)", "sys");
+      await pushOut(`Welcome ${username} — System Hardening Lab (simulated)`, "sys");
       await delay(400);
       await pushOut("Type 'help' for a list of commands.", "sys");
       await delay(400);
@@ -181,7 +204,8 @@ export default function Defense() {
       setBooted(true);
     };
     boot();
-  }, [booted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
 
   // ================== RENDER ==================
   return (
@@ -195,7 +219,7 @@ export default function Defense() {
             ))}
 
             <div className="terminal-input-line">
-              <span className="prompt">arunaw@cybersim:~$</span>
+              <span className="prompt">{username}@cybersim:~$</span>
               <input
                 ref={inputRef}
                 value={input}
@@ -236,9 +260,7 @@ export default function Defense() {
 
           <div className="log-footer">
             <p>Logs: {history.length} commands run</p>
-            <button onClick={() => setInput("sudo ufw enable")}>
-              Try: Enable Firewall
-            </button>
+            <button onClick={() => setInput("sudo ufw enable")}>Try: Enable Firewall</button>
           </div>
         </div>
       </div>
