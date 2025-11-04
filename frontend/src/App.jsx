@@ -12,6 +12,8 @@ import SingleAttackSession from "./attacks/atk1";
 import Learn from "./pages/Learn";
 import Defense from "./pages/Defense";
 import Login from "./pages/Login";
+import GetStarted from "./pages/GetStarted";
+
 
 // =============== Navigation Bar ===============
 function Navigation() {
@@ -65,11 +67,12 @@ function Navigation() {
 // =============== Home Page ===============
 function Home() {
   return (
-    <main className="main-placeholder">
+    <main className="main-placeholder fade-in">
       <div className="card center-card">
         <h1>Welcome to Cybersim</h1>
         <p className="lead">
-          A learning platform for cybersecurity — rebuilding the UI from scratch.
+          A learning platform for cybersecurity — building skills through
+          real-world simulated environments.
         </p>
         <div className="actions">
           <Link to="/get-started" className="btn primary">
@@ -82,10 +85,10 @@ function Home() {
       </div>
 
       <section className="unique-features">
-        <h2>Platform highlights</h2>
+        <h2>Platform Highlights</h2>
         <ul>
           <li>Interactive sandboxed labs</li>
-          <li>Beginner → advanced CTF tracks</li>
+          <li>Beginner → Advanced CTF tracks</li>
           <li>Linux command games and exercises</li>
           <li>Step-by-step writeups and community guides</li>
         </ul>
@@ -97,8 +100,6 @@ function Home() {
 // =============== App Component ===============
 function App() {
   const location = useLocation();
-
-  // Add background only for non-login pages
   const isLoginPage = location.pathname === "/login";
 
   return (
@@ -106,33 +107,16 @@ function App() {
       <Navigation />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/get-started" element={<GetStarted />} />
         <Route path="/learn" element={<Learn />} />
+        <Route path="/defense" element={<Defense />} />
+        <Route path="/login" element={<Login />} />
         <Route
           path="/attack"
           element={
             <main style={{ paddingTop: "1.25rem" }}>
               <SingleAttackSession onClose={() => (window.location.href = "/")} />
             </main>
-          }
-        />
-        <Route path="/defense" element={<Defense />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/get-started"
-          element={
-            <div style={{ padding: "3rem", textAlign: "center" }}>
-              <h1>Get Started Page</h1>
-              <p>Coming soon!</p>
-            </div>
-          }
-        />
-        <Route
-          path="/articles"
-          element={
-            <div style={{ padding: "3rem", textAlign: "center" }}>
-              <h1>Articles Page</h1>
-              <p>Community-driven content coming soon.</p>
-            </div>
           }
         />
       </Routes>
