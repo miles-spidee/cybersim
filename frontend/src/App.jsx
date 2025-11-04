@@ -110,7 +110,7 @@ function App() {
   const isLoginPage = location.pathname === "/login";
 
   return (
-    <div className={!isLoginPage ? "app-bg" : "app-login"}>
+      <div className={!isLoginPage ? "app-bg" : "app-login"}>
       <Navigation />
       <Routes>
         <Route path="/" element={<Home />} />
