@@ -1,424 +1,260 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Defense.css';
+import React, { useState, useRef, useEffect } from "react";
+import "./Defense.css"; // <-- Make sure this file exists (you already have it)
 
-const defenseModules = [
-  {
-    id: 1,
-    title: 'System Hardening Lab',
-    description: 'Interactive system security hardening environment',
-    icon: '🔒',
-    steps: [
-      'Scan system for vulnerabilities',
-      'Disable unnecessary services',
-      'Configure firewall rules',
-      'Enable disk encryption',
-      'Set up secure authentication'
-    ],
-    completed: false,
-    labEnvironment: {
-      services: [
-        { id: 'ftp', name: 'FTP Server', running: true, port: 21, description: 'Unencrypted file transfer protocol' },
-        { id: 'telnet', name: 'Telnet', running: true, port: 23, description: 'Unencrypted remote access' },
-        { id: 'samba', name: 'Samba', running: true, port: 445, description: 'File sharing service' },
-        { id: 'bluetooth', name: 'Bluetooth', running: true, port: null, description: 'Wireless communication' },
-        { id: 'httpd', name: 'Web Server', running: false, port: 80, description: 'Not needed on workstations' }
-      ],
-      firewall: {
-        enabled: false,
-        rules: []
-      },
-      encryption: {
-        enabled: false,
-        progress: 0
-      },
-      authentication: {
-        passwordPolicy: 'weak',
-        mfaEnabled: false
-      }
-    }
-  }
-];
+export default function Defense() {
+  const [input, setInput] = useState("");
+  const [outputs, setOutputs] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [histIndex, setHistIndex] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const [booted, setBooted] = useState(false);
 
-function Defense() {
-  const [activeModule, setActiveModule] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [showCompletion, setShowCompletion] = useState(false);
-  const [taskCompleted, setTaskCompleted] = useState(false);
-  const [command, setCommand] = useState('');
-  const [output, setOutput] = useState([
-    '=== System Hardening Lab ===',
-    'Type "help" to see available commands',
-    'Type "start" to begin the lab',
-    ''
-  ]);
-  const [labState, setLabState] = useState(null);
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
-  const navigate = useNavigate();
 
-  // Initialize lab state when module starts
-  useEffect(() => {
-    if (activeModule?.labEnvironment) {
-      const initialState = JSON.parse(JSON.stringify(activeModule.labEnvironment));
-      setLabState(initialState);
-      setOutput([
-        '=== System Hardening Lab ===',
-        `Current Task: ${activeModule.steps[0]}`,
-        'Type "help" to see available commands',
-        ''
-      ]);
-    }
-  }, [activeModule]);
+  // ================== CHECKLIST ==================
+  const initialChecklist = [
+    { id: "firewall", title: "Enable firewall (ufw)", done: false, hint: "sudo ufw enable" },
+    { id: "update", title: "Update & upgrade packages", done: false, hint: "sudo apt update && sudo apt upgrade" },
+    { id: "sshd", title: "Disable root SSH login", done: false, hint: "sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl restart sshd" },
+    { id: "chmod", title: "Secure /root permissions", done: false, hint: "chmod 700 /root" },
+    { id: "guest", title: "Disable guest account", done: false, hint: "sudo systemctl disable guest-account" },
+  ];
+  const [checklist, setChecklist] = useState(initialChecklist);
 
-  // Auto-scroll terminal
-  useEffect(() => {
-    if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-  }, [output]);
-
-  const executeCommand = (cmd) => {
-    if (!cmd.trim()) return;
-    const newOutput = [...output, `$ ${cmd}`];
-    const args = cmd.trim().split(' ');
-    const baseCmd = args[0].toLowerCase();
-
-    switch (baseCmd) {
-      case 'help':
-        newOutput.push('Available commands:');
-        newOutput.push('  help              - Show this help message');
-        newOutput.push('  start             - Begin the lab');
-        newOutput.push('  scan system       - Scan for vulnerabilities');
-        newOutput.push('  list services     - List all running services');
-        newOutput.push('  stop <service>    - Stop a service (e.g., stop ftp)');
-        newOutput.push('  firewall status   - Check firewall status');
-        newOutput.push('  firewall enable   - Enable the firewall');
-        newOutput.push('  encrypt start     - Start disk encryption');
-        newOutput.push('  clear             - Clear the terminal');
-        newOutput.push('  next              - Proceed to next step');
-        break;
-
-      case 'start':
-        newOutput.push('Starting lab environment...');
-        newOutput.push('Type "scan system" to begin vulnerability assessment');
-        setTaskCompleted(true);
-        break;
-
-      case 'scan':
-        if (args[1] === 'system') {
-          newOutput.push('Scanning system for vulnerabilities...');
-          newOutput.push('Found 5 security issues:');
-          newOutput.push('1. FTP service running (insecure protocol)');
-          newOutput.push('2. Telnet service running (insecure protocol)');
-          newOutput.push('3. Samba service running (potential vulnerability)');
-          newOutput.push('4. Bluetooth service running (potential attack vector)');
-          newOutput.push('5. Firewall is disabled');
-          newOutput.push('\nRun "list services" to see all running services');
-          setTaskCompleted(true);
-        } else newOutput.push('Unknown command. Type "help" for available commands.');
-        break;
-
-      case 'list':
-        if (args[1] === 'services' && labState) {
-          newOutput.push('Running services:');
-          labState.services.forEach(s => {
-            if (s.running) newOutput.push(`- ${s.name} (${s.id}) - Port: ${s.port || 'N/A'} - ${s.description}`);
-          });
-          newOutput.push('\nUse "stop <service>" to disable a service');
-        } else newOutput.push('Unknown command. Type "help" for available commands.');
-        break;
-
-      case 'stop':
-        if (args[1] && labState) {
-          const service = labState.services.find(s => s.id === args[1]);
-          if (service) {
-            service.running = false;
-            newOutput.push(`Stopped ${service.name} service`);
-            const vulnerableServices = labState.services.filter(s =>
-              ['ftp', 'telnet', 'samba', 'bluetooth'].includes(s.id)
-            );
-            const allStopped = vulnerableServices.every(s => !s.running);
-            if (allStopped) {
-              newOutput.push('All vulnerable services have been disabled!');
-              setTaskCompleted(true);
-            }
-          } else newOutput.push(`Service "${args[1]}" not found`);
-        } else newOutput.push('Please specify a service to stop');
-        break;
-
-      case 'firewall':
-        if (args[1] === 'status') {
-          newOutput.push(`Firewall is ${labState?.firewall.enabled ? 'enabled' : 'disabled'}`);
-          if (labState?.firewall.rules.length > 0) {
-            newOutput.push('Active rules:');
-            labState.firewall.rules.forEach(rule => newOutput.push(`- ${rule}`));
-          }
-        } else if (args[1] === 'enable') {
-          if (labState) {
-            labState.firewall.enabled = true;
-            labState.firewall.rules = [
-              'Allow SSH (port 22)',
-              'Allow HTTP (port 80)',
-              'Allow HTTPS (port 443)',
-              'Block all other incoming connections'
-            ];
-            newOutput.push('Firewall enabled with secure rules');
-            setTaskCompleted(true);
-          }
-        } else newOutput.push('Unknown firewall command. Use "firewall status" or "firewall enable"');
-        break;
-
-      case 'encrypt':
-        if (args[1] === 'start') {
-          newOutput.push('Starting disk encryption...');
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += 10;
-            setOutput(prev => [...prev.slice(0, -1), `Encryption in progress: ${progress}%`]);
-            if (progress >= 100) {
-              clearInterval(interval);
-              setOutput(prev => [...prev.slice(0, -1), '✅ Disk encryption completed successfully']);
-              setTaskCompleted(true);
-              if (labState) {
-                setLabState({
-                  ...labState,
-                  encryption: { ...labState.encryption, enabled: true, progress: 100 }
-                });
-              }
-            }
-          }, 500);
-        } else newOutput.push('Unknown command. Use "encrypt start" to begin disk encryption.');
-        break;
-
-      case 'clear':
-        setOutput(['=== Terminal cleared ===', '']);
-        return;
-
-      case 'next':
-        if (taskCompleted) {
-          completeStep();
-          return;
-        } else newOutput.push('Please complete the current task before proceeding.');
-        break;
-
-      default:
-        newOutput.push(`Command not found: ${cmd}`);
-        newOutput.push('Type "help" for a list of available commands');
-    }
-
-    setOutput(newOutput);
+  // ================== UTILITIES ==================
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+  const scrollBottom = () => {
+    requestAnimationFrame(() => {
+      if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    });
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && command.trim()) {
-      executeCommand(command);
-      setCommand('');
-    }
+  const pushOut = async (text, type = "out") => {
+    setOutputs((o) => [...o, { type, text }]);
+    await delay(10);
+    scrollBottom();
   };
 
-  const startModule = (module) => {
-    setActiveModule(module);
-    setCurrentStep(0);
-    setProgress(0);
-    setTaskCompleted(false);
-    setShowCompletion(false);
-    setCommand('');
-    setOutput([
-      '=== System Hardening Lab ===',
-      `Current Task: ${module.steps[0]}`,
-      'Type "help" to see available commands',
-      ''
-    ]);
-  };
-
-  const completeStep = () => {
-    if (!activeModule) return;
-    const newStep = currentStep + 1;
-
-    if (newStep >= activeModule.steps.length) {
-      const newOutput = [
-        ...output,
-        '',
-        '🎉 All tasks completed successfully!',
-        '✅ System hardening lab finished.',
-        "Type 'exit' or click 'Return to Start' to restart."
-      ];
-      setOutput(newOutput);
-      setShowCompletion(true);
-      setActiveModule({ ...activeModule, completed: true });
-      return;
-    }
-
-    setCurrentStep(newStep);
-    setProgress(Math.round((newStep / activeModule.steps.length) * 100));
-    setTaskCompleted(false);
-    const newOutput = [...output, ''];
-
-    switch (newStep) {
-      case 1:
-        newOutput.push('=== Step 2: Disable Unnecessary Services ===');
-        break;
-      case 2:
-        newOutput.push('=== Step 3: Configure Firewall ===');
-        break;
-      case 3:
-        newOutput.push('=== Step 4: Enable Disk Encryption ===');
-        break;
-      case 4:
-        newOutput.push('=== Step 5: Secure Authentication ===');
-        setTaskCompleted(true);
-        break;
-      default:
-        break;
-    }
-    setOutput(newOutput);
-  };
-
-  const resetModule = () => {
-    setActiveModule(null);
-    setProgress(0);
-    setCurrentStep(0);
-    setShowCompletion(false);
-    setTaskCompleted(false);
-    setCommand('');
-    setOutput([
-      '=== System Hardening Lab ===',
-      'Type "help" to see available commands',
-      'Type "start" to begin the lab',
-      ''
-    ]);
-  };
-
-  // === COMPLETION SCREEN ===
-  if (showCompletion) {
-    return (
-      <div className="completion-screen">
-        <div className="success-animation">
-          <div className="checkmark">✓</div>
-        </div>
-        <h2>Lab Completed Successfully! 🎉</h2>
-        <p>You've successfully hardened the system by:</p>
-        <ul className="achievements">
-          <li>✓ Scanned for vulnerabilities</li>
-          <li>✓ Disabled unnecessary services</li>
-          <li>✓ Configured the firewall</li>
-          <li>✓ Enabled disk encryption</li>
-          <li>✓ Set up secure authentication</li>
-        </ul>
-        <div className="completion-actions">
-          <button className="btn primary" onClick={resetModule}>
-            🔁 Return to Start
-          </button>
-          <button className="btn ghost" onClick={() => navigate('/learn')}>
-            Back to Learning Paths
-          </button>
-        </div>
-      </div>
+  const markDone = (id) =>
+    setChecklist((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, done: true } : c))
     );
-  }
 
-  // === INITIAL SCREEN ===
-  if (!activeModule) {
-    return (
-      <div className="defense-lab-container">
-        <div className="defense-header">
-          <h1>Security Hardening Lab</h1>
-          <p>Practice real-world system hardening techniques in a safe, interactive environment</p>
+  const computeProgress = () => {
+    const done = checklist.filter((c) => c.done).length;
+    return Math.round((done / checklist.length) * 100);
+  };
+
+  // ================== COMMANDS ==================
+  const COMMANDS = [
+    {
+      match: (cmd) => /^(sudo\s+ufw\s+enable)$/.test(cmd),
+      run: async () => {
+        await pushOut("Setting up firewall rules...");
+        await delay(700);
+        await pushOut("Firewall enabled and default policies applied.");
+        markDone("firewall");
+      },
+    },
+    {
+      match: (cmd) => /^(sudo\s+apt\s+update)(\s*&&\s*sudo\s+apt\s+upgrade)?$/.test(cmd),
+      run: async (cmd) => {
+        await pushOut("Fetching package lists...");
+        await delay(900);
+        await pushOut("Reading package lists... Done");
+        if (/upgrade/.test(cmd)) {
+          await delay(800);
+          await pushOut("Upgrading system packages... Done");
+          markDone("update");
+        }
+      },
+    },
+    {
+      match: (cmd) => /^(chmod\s+700\s+\/root)$/.test(cmd) || /^(sudo\s+chmod\s+700\s+\/root)$/.test(cmd),
+      run: async () => {
+        await pushOut("Permissions for /root updated to 700.");
+        markDone("chmod");
+      },
+    },
+    {
+      match: (cmd) => /(PermitRootLogin)/.test(cmd) || /(sshd)/.test(cmd),
+      run: async () => {
+        await pushOut("Editing sshd_config and restarting sshd service...");
+        await delay(800);
+        await pushOut("Root SSH login disabled.");
+        markDone("sshd");
+      },
+    },
+    {
+      match: (cmd) => /^(sudo\s+systemctl\s+disable\s+guest-account)$/.test(cmd),
+      run: async () => {
+        await pushOut("Guest account disabled successfully.");
+        markDone("guest");
+      },
+    },
+    {
+      match: (cmd) => /^(checklist)$/.test(cmd),
+      run: async () => {
+        const lines = checklist
+          .map((c) => `${c.done ? "[x]" : "[ ]"} ${c.title}`)
+          .join("\n");
+        await pushOut(lines);
+      },
+    },
+    {
+      match: (cmd) => /^(status)$/.test(cmd),
+      run: async () => {
+        const pct = computeProgress();
+        await pushOut(`System Hardening Progress: ${pct}%`);
+      },
+    },
+    {
+      match: (cmd) => /^(help|\?)$/.test(cmd),
+      run: async () => {
+        await pushOut(
+          "Available Commands:\n" +
+            "- sudo ufw enable\n" +
+            "- sudo apt update && sudo apt upgrade\n" +
+            "- chmod 700 /root\n" +
+            "- sudo systemctl disable guest-account\n" +
+            "- sed/sshd changes\n" +
+            "- checklist\n" +
+            "- status"
+        );
+      },
+    },
+  ];
+
+  // ================== INPUT HANDLING ==================
+  const handleCommand = async (raw) => {
+    const cmd = raw.trim();
+    if (!cmd) return;
+    setHistory((h) => [cmd, ...h].slice(0, 50));
+    setInput("");
+    setOutputs((o) => [...o, { type: "cmd", text: `$ ${cmd}` }]);
+    setIsProcessing(true);
+
+    const match = COMMANDS.find((c) => c.match(cmd));
+    if (match) await match.run(cmd);
+    else await pushOut(`bash: ${cmd.split(" ")[0]}: command not found`, "err");
+
+    setIsProcessing(false);
+
+    // Example backend log (optional)
+    // await fetch("http://localhost:5000/api/defense/log", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     userId: "arunaw01",
+    //     command: cmd,
+    //     output: "Simulated output",
+    //     success: !!match,
+    //   }),
+    // });
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleCommand(input);
+    }
+  };
+
+  // ================== EFFECTS ==================
+  useEffect(() => {
+    const blink = setInterval(() => setCursorVisible((v) => !v), 600);
+    return () => clearInterval(blink);
+  }, []);
+
+  useEffect(() => {
+    if (booted) return;
+    const boot = async () => {
+      await pushOut("Welcome to Cybersim — System Hardening Lab (simulated)", "sys");
+      await delay(400);
+      await pushOut("Type 'help' for a list of commands.", "sys");
+      await delay(400);
+      await pushOut("This environment is simulated and will not modify your real system.", "sys");
+      await delay(400);
+      await pushOut("Start by enabling the firewall and updating packages.", "sys");
+      setBooted(true);
+    };
+    boot();
+  }, [booted]);
+
+  // ================== RENDER ==================
+  return (
+    <div className="defense-wrapper">
+      <div className="defense-container">
+        {/* Terminal Section */}
+        <div className="terminal-panel">
+          <div ref={terminalRef} className="terminal-output">
+            {outputs.map((o, i) => (
+              <TerminalLine key={i} {...o} />
+            ))}
+
+            <div className="terminal-input-line">
+              <span className="prompt">arunaw@cybersim:~$</span>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                className="terminal-input"
+                spellCheck={false}
+                autoFocus
+              />
+              <span className="cursor">{cursorVisible ? "█" : " "}</span>
+            </div>
+          </div>
+          <div className="terminal-footer">
+            <span>Use Tab for autocomplete • ↑↓ for history • Enter to run</span>
+            <button onClick={() => setOutputs([])}>Clear</button>
+          </div>
         </div>
 
-        <div className="lab-intro">
-          <div className="lab-card">
-            <div className="lab-card-header">
-              <span className="lab-card-icon">🔒</span>
-              <h3>System Hardening Lab</h3>
-            </div>
-            <p className="lab-description">
-              Learn how to secure systems by identifying and fixing vulnerabilities, configuring firewalls, 
-              and implementing strong authentication mechanisms.
-            </p>
-            <button className="btn primary" onClick={() => startModule(defenseModules[0])}>
-              Start Lab
+        {/* System Status Sidebar */}
+        <div className="status-panel">
+          <h2>System Status</h2>
+          <div className="progress-bar">
+            <div style={{ width: `${computeProgress()}%` }}></div>
+          </div>
+          <p className="progress-text">{computeProgress()}% hardened</p>
+
+          <h3>Checklist</h3>
+          <ul>
+            {checklist.map((c) => (
+              <li key={c.id}>
+                <span className={c.done ? "done" : ""}>
+                  {c.done ? "✔" : "○"} {c.title}
+                </span>
+                <div className="hint">Hint: {c.hint}</div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="log-footer">
+            <p>Logs: {history.length} commands run</p>
+            <button onClick={() => setInput("sudo ufw enable")}>
+              Try: Enable Firewall
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // === ACTIVE LAB VIEW ===
-  return (
-    <div className="defense-lab active">
-      <div className="lab-header">
-        <div className="lab-nav">
-          <h3>{activeModule.title}</h3>
-          <div className="lab-progress">
-            <div className="progress-bar">
-              <div className="progress" style={{ width: `${progress}%` }}></div>
-            </div>
-          </div>
-          <button className="btn ghost" onClick={resetModule}>Exit Lab</button>
-        </div>
-      </div>
-
-      <div className="lab-container">
-        {/* Terminal */}
-        <div className="terminal-window">
-          <div className="terminal-header">
-            <div className="terminal-buttons">
-              <span className="terminal-btn close"></span>
-              <span className="terminal-btn minimize"></span>
-              <span className="terminal-btn maximize"></span>
-            </div>
-            <div className="terminal-title">terminal@security-lab</div>
-          </div>
-          <div className="terminal-content" ref={terminalRef}>
-            {output.map((line, i) => <p key={i} className="terminal-line">{line}</p>)}
-          </div>
-          <div className="terminal-input">
-            <span className="prompt">$</span>
-            <input
-              type="text"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a command..."
-              ref={inputRef}
-              autoFocus
-            />
-          </div>
-        </div>
-
-        {/* ✅ Right-Side Panel */}
-        <div className="status-panel">
-          <h3>System Status</h3>
-          <div className="status-card">
-            <p>Firewall</p>
-            <span className={`status ${labState?.firewall.enabled ? 'ok' : 'bad'}`}>
-              {labState?.firewall.enabled ? 'Enabled' : 'Disabled'}
-            </span>
-          </div>
-          <div className="status-card">
-            <p>Disk Encryption</p>
-            <span className={`status ${labState?.encryption.enabled ? 'ok' : 'warn'}`}>
-              {labState?.encryption.enabled ? 'Enabled' : 'Not Encrypted'}
-            </span>
-          </div>
-          <div className="status-card">
-            <p>Vulnerable Services</p>
-            <span className={`status ${labState?.services?.filter(s => s.running && ['ftp','telnet','samba','bluetooth'].includes(s.id)).length === 0 ? 'ok' : 'bad'}`}>
-              {labState?.services?.filter(s => s.running && ['ftp','telnet','samba','bluetooth'].includes(s.id)).length || 0} Active
-            </span>
-          </div>
-          <div className="status-card">
-            <p>Authentication</p>
-            <span className="status warn">Needs Improvement</span>
-          </div>
-
-          
         </div>
       </div>
     </div>
   );
 }
 
-export default Defense;
+// ================== TERMINAL LINE COMPONENT ==================
+function TerminalLine({ type, text }) {
+  const color =
+    type === "cmd"
+      ? "cmd"
+      : type === "err"
+      ? "err"
+      : type === "sys"
+      ? "sys"
+      : "out";
+  return <pre className={`line ${color}`}>{text}</pre>;
+}

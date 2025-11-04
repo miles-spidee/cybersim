@@ -5,6 +5,8 @@ import SingleAttackSession from './attacks/atk1';
 import Learn from './pages/Learn';
 import Defense from './pages/Defense';
 
+
+
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
