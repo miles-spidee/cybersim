@@ -270,7 +270,7 @@ export default function Defense() {
                 <span className={c.done ? "done" : ""}>
                   {c.done ? "✔" : "○"} {c.title}
                 </span>
-                <div className="hint">Hint: {c.hint}</div>
+                {/* <div className="hint">Hint: {c.hint}</div> */}
               </li>
             ))}
           </ul>
