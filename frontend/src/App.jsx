@@ -9,8 +9,16 @@ import {
 } from "react-router-dom";
 import "./App.css";
 import SingleAttackSession from "./attacks/atk1";
+import Attack2 from "./attacks/atk2";
+import Attack3 from "./attacks/atk3";
+import Attack4 from "./attacks/atk4";
+import Attack5 from "./attacks/atk5";
 import Learn from "./pages/Learn";
-import Defense from "./pages/Defense";
+import AttacksList from "./pages/Attacks";
+import DefensesList from "./pages/Defenses";
+import SystemHardening from "./defenses/system-hardening";
+import LogAnalysis from "./defenses/log-analysis";
+import IDSMonitor from "./defenses/ids-monitor";
 import Login from "./pages/Login";
 
 // =============== Navigation Bar ===============
@@ -102,20 +110,56 @@ function App() {
   const isLoginPage = location.pathname === "/login";
 
   return (
-    <div id="root" className={!isLoginPage ? "app-bg" : "app-login"}>
+    <div className={!isLoginPage ? "app-bg" : "app-login"}>
       <Navigation />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/learn" element={<Learn />} />
+        <Route path="/attack" element={<AttacksList />} />
         <Route
-          path="/attack"
+          path="/attack/sql-injection"
           element={
             <main style={{ paddingTop: "1.25rem" }}>
               <SingleAttackSession onClose={() => (window.location.href = "/")} />
             </main>
           }
         />
-        <Route path="/defense" element={<Defense />} />
+        <Route
+          path="/attack/atk2"
+          element={
+            <main style={{ paddingTop: "1.25rem" }}>
+              <Attack2 onClose={() => (window.location.href = "/")} />
+            </main>
+          }
+        />
+        <Route
+          path="/attack/atk3"
+          element={
+            <main style={{ paddingTop: "1.25rem" }}>
+              <Attack3 onClose={() => (window.location.href = "/")} />
+            </main>
+          }
+        />
+        <Route
+          path="/attack/atk4"
+          element={
+            <main style={{ paddingTop: "1.25rem" }}>
+              <Attack4 onClose={() => (window.location.href = "/")} />
+            </main>
+          }
+        />
+        <Route
+          path="/attack/atk5"
+          element={
+            <main style={{ paddingTop: "1.25rem" }}>
+              <Attack5 onClose={() => (window.location.href = "/")} />
+            </main>
+          }
+        />
+  <Route path="/defense" element={<DefensesList />} />
+  <Route path="/defense/system-hardening" element={<SystemHardening />} />
+  <Route path="/defense/log-analysis" element={<LogAnalysis />} />
+  <Route path="/defense/ids-monitor" element={<IDSMonitor />} />
         <Route path="/login" element={<Login />} />
         <Route
           path="/get-started"

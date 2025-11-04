@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import "./Defense.css"; // <-- Make sure this file exists (you already have it)
+import "../pages/Defense.css";
 
-export default function Defense() {
+export default function SystemHardening() {
   const [input, setInput] = useState("");
   const [outputs, setOutputs] = useState([]);
   const [history, setHistory] = useState([]);
@@ -13,7 +13,6 @@ export default function Defense() {
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
 
-  // ================== CHECKLIST ==================
   const initialChecklist = [
     { id: "firewall", title: "Enable firewall (ufw)", done: false, hint: "sudo ufw enable" },
     { id: "update", title: "Update & upgrade packages", done: false, hint: "sudo apt update && sudo apt upgrade" },
@@ -23,7 +22,6 @@ export default function Defense() {
   ];
   const [checklist, setChecklist] = useState(initialChecklist);
 
-  // ================== UTILITIES ==================
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   const scrollBottom = () => {
     requestAnimationFrame(() => {
@@ -47,7 +45,6 @@ export default function Defense() {
     return Math.round((done / checklist.length) * 100);
   };
 
-  // ================== COMMANDS ==================
   const COMMANDS = [
     {
       match: (cmd) => /^(sudo\s+ufw\s+enable)$/.test(cmd),
@@ -127,7 +124,6 @@ export default function Defense() {
     },
   ];
 
-  // ================== INPUT HANDLING ==================
   const handleCommand = async (raw) => {
     const cmd = raw.trim();
     if (!cmd) return;
@@ -141,18 +137,6 @@ export default function Defense() {
     else await pushOut(`bash: ${cmd.split(" ")[0]}: command not found`, "err");
 
     setIsProcessing(false);
-
-    // Example backend log (optional)
-    // await fetch("http://localhost:5000/api/defense/log", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     userId: "arunaw01",
-    //     command: cmd,
-    //     output: "Simulated output",
-    //     success: !!match,
-    //   }),
-    // });
   };
 
   const onKeyDown = (e) => {
@@ -162,7 +146,6 @@ export default function Defense() {
     }
   };
 
-  // ================== EFFECTS ==================
   useEffect(() => {
     const blink = setInterval(() => setCursorVisible((v) => !v), 600);
     return () => clearInterval(blink);
@@ -183,11 +166,20 @@ export default function Defense() {
     boot();
   }, [booted]);
 
-  // ================== RENDER ==================
   return (
     <div className="defense-wrapper">
-      <div className="defense-container">
-        {/* Terminal Section */}
+      <div className="defense-container session-layout session-column">
+        <aside className="how-to">
+          <h3>How to play — System Hardening</h3>
+          <ol>
+            <li>Click into the terminal and run commands suggested by the checklist (e.g. <code>sudo ufw enable</code>).</li>
+            <li>Use <code>sudo apt update && sudo apt upgrade</code> to simulate updates.</li>
+            <li>When a checklist item performs successfully it will be marked done and progress will increase.</li>
+            <li>Goal: reach 100% hardening by completing all checklist items.</li>
+          </ol>
+          <div className="tip">Tip: type <code>help</code> in the terminal to see supported commands.</div>
+        </aside>
+
         <div className="terminal-panel">
           <div ref={terminalRef} className="terminal-output">
             {outputs.map((o, i) => (
@@ -214,8 +206,7 @@ export default function Defense() {
           </div>
         </div>
 
-        {/* System Status Sidebar */}
-        <div className="status-panel">
+        <aside className="status-panel">
           <h2>System Status</h2>
           <div className="progress-bar">
             <div style={{ width: `${computeProgress()}%` }}></div>
@@ -236,25 +227,22 @@ export default function Defense() {
 
           <div className="log-footer">
             <p>Logs: {history.length} commands run</p>
-            <button onClick={() => setInput("sudo ufw enable")}>
-              Try: Enable Firewall
-            </button>
+            <button onClick={() => setInput("sudo ufw enable")}>Try: Enable Firewall</button>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );
-}
 
-// ================== TERMINAL LINE COMPONENT ==================
-function TerminalLine({ type, text }) {
-  const color =
-    type === "cmd"
-      ? "cmd"
-      : type === "err"
-      ? "err"
-      : type === "sys"
-      ? "sys"
-      : "out";
-  return <pre className={`line ${color}`}>{text}</pre>;
+  function TerminalLine({ type, text }) {
+    const color =
+      type === "cmd"
+        ? "cmd"
+        : type === "err"
+        ? "err"
+        : type === "sys"
+        ? "sys"
+        : "out";
+    return <pre className={`line ${color}`}>{text}</pre>;
+  }
 }
