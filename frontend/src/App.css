@@ -654,3 +654,26 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui
     padding: 1rem;
   }
 }
+
+/* Attack lab input overrides: ensure good contrast for inputs/placeholders inside the lab */
+.atk-input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  background: var(--surface); /* use theme surface color */
+  color: var(--text);   /* high-contrast text */
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: 14px;
+}
+.atk-input:focus {
+  outline: none;
+  border-color: rgba(124,58,237,0.4);
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.06);
+}
+.atk-input::placeholder {
+  color: #94a3b8; /* visible muted placeholder */
+  opacity: 1;
+}
+

@@ -143,15 +143,15 @@ export default function AttackLab({ onClose }) {
 
           <div style={{ marginTop: 12 }}>
             <h4>Simulated vulnerable page</h4>
-            <div style={{ border: '1px solid #ddd', padding: 12, borderRadius: 8, background: '#fafafa' }}>
+            <div style={{ border: '1px solid rgba(255,255,255,0.06)', padding: 12, borderRadius: 8, background: 'var(--surface)', color: 'var(--text)' }}>
               <form onSubmit={submitLogin}>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontSize: 13 }}>Username</label>
-                  <input value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="username" style={{ width: '100%', padding: 8, marginTop: 6, color: '#000' }} />
+                  <input value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="username" className="atk-input" />
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontSize: 13 }}>Password</label>
-                  <input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="password" style={{ width: '100%', padding: 8, marginTop: 6, color: '#000' }} />
+                  <input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="password" className="atk-input" />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn primary" disabled={!started} type="submit">Login</button>
@@ -182,7 +182,7 @@ export default function AttackLab({ onClose }) {
         </section>
 
         <aside style={{ textAlign: 'left' }}>
-          <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+          <div style={{ border: '1px solid rgba(255,255,255,0.04)', padding: 12, borderRadius: 8, background: 'var(--surface)', color: 'var(--text)' }}>
             <h4>Checkpoints</h4>
             <ul style={{ listStyle: 'none', padding: 0 }}>
               <li><input type="checkbox" checked={checkpoints.openedLab} readOnly /> Open lab</li>
@@ -195,7 +195,7 @@ export default function AttackLab({ onClose }) {
             <div style={{ marginTop: 12 }}>
               <h4>Submit flag</h4>
               <form onSubmit={submitFlag}>
-                <input value={flagInput} onChange={(e)=>setFlagInput(e.target.value)} placeholder="flag{...}" style={{ width: '100%', padding: 8, marginBottom: 8, color: '#000' }} />
+                <input value={flagInput} onChange={(e)=>setFlagInput(e.target.value)} placeholder="flag{...}" className="atk-input" style={{ marginBottom: 8 }} />
                 <button className="btn primary" type="submit" disabled={!started}>Submit</button>
               </form>
               {message ? <div style={{ marginTop: 8, color: message.type==='success' ? '#86efac' : (message.type==='error' ? '#ff6b6b' : '#cbd5e1') }}>{message.text}</div> : null}
