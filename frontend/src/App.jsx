@@ -11,6 +11,10 @@ import "./App.css";
 
 // ==== Page Imports ====
 import SingleAttackSession from "./attacks/atk1";
+import Attack2 from "./attacks/atk2";
+import Attack3 from "./attacks/atk3";
+import Attack4 from "./attacks/atk4";
+import Attack5 from "./attacks/atk5";
 import Learn from "./pages/Learn";
 import AttackList from "./pages/AttackList";
 import DefenseList from "./pages/DefenseList";
@@ -20,6 +24,9 @@ import GetStarted from "./pages/GetStarted";
 import Profile from "./pages/Profile";
 import Articles from "./pages/Articles";
 import ArticleDetail from "./pages/ArticleDetail";
+import IDSMonitor from "./defenses/ids-monitor";
+import LogAnalysis from "./defenses/log-analysis";
+import SystemHardening from "./defenses/system-hardening";
 
 // =============== Navigation Bar ===============
 function Navigation() {
@@ -170,8 +177,20 @@ function App() {
           element={<SingleAttackSession title="SQL Injection Lab" />}
         />
         <Route
+          path="/attack/file-read"
+          element={<Attack2 />}
+        />
+        <Route
           path="/attack/xss"
-          element={<SingleAttackSession title="Cross-Site Scripting Lab" />}
+          element={<Attack3 />}
+        />
+        <Route
+          path="/attack/ctf"
+          element={<Attack4 />}
+        />
+        <Route
+          path="/attack/traversal"
+          element={<Attack5 />}
         />
         <Route
           path="/attack/phishing"
@@ -181,7 +200,7 @@ function App() {
         {/* 🛡️ Defense Labs */}
         <Route
           path="/defense/system-hardening"
-          element={<Defense title="OS System Hardening Lab" />}
+          element={<SystemHardening />}
         />
         <Route
           path="/defense/firewall"
@@ -191,6 +210,8 @@ function App() {
           path="/defense/network-security"
           element={<Defense title="Network Security Lab" />}
         />
+        <Route path="/defense/ids-monitor" element={<IDSMonitor />} />
+        <Route path="/defense/log-analysis" element={<LogAnalysis />} />
       </Routes>
     </div>
   );

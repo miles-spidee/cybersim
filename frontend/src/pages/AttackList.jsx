@@ -12,7 +12,34 @@ export default function AttackList() {
       highlight: true,
       description: "Exploit vulnerable input fields to inject malicious SQL queries.",
     },
-    
+    {
+      id: 2,
+      name: "📄 File Read",
+      path: "/attack/file-read",
+      highlight: false,
+      description: "Simulated file-download endpoint and directory traversal style demo.",
+    },
+    {
+      id: 3,
+      name: "🖥️ Reflected XSS",
+      path: "/attack/xss",
+      highlight: false,
+      description: "Client-side reflected XSS simulation demonstrating unsafe echoing of input.",
+    },
+    {
+      id: 4,
+      name: "🧭 Mini CTF (CLI)",
+      path: "/attack/ctf",
+      highlight: false,
+      description: "Small command-line CTF to practice basic linux-like exploration and flag retrieval.",
+    },
+    {
+      id: 5,
+      name: "🔎 Traversal CTF",
+      path: "/attack/traversal",
+      highlight: false,
+      description: "Find hidden files in a simulated filesystem using find/ls/cat commands.",
+    },
   ];
 
   return (
@@ -33,49 +60,19 @@ export default function AttackList() {
           <div
             key={attack.id}
             onClick={() => navigate(attack.path)}
-            className="relative cursor-pointer w-80 rounded-2xl transition-all duration-300"
+            className={`attack-card relative cursor-pointer w-80 rounded-2xl transition-all duration-300 ${attack.highlight ? 'highlight' : ''}`}
             style={{
               background: "rgba(17,25,48,0.85)",
               border: attack.highlight
-                ? "1px solid rgba(239,68,68,0.8)"
+                ? "1px solid rgba(239,68,68,0.18)"
                 : "1px solid rgba(255,255,255,0.08)",
-              boxShadow: attack.highlight
-                ? "0 0 25px 4px rgba(239,68,68,0.6)"
-                : "0 0 12px rgba(0,0,0,0.3)",
               padding: "2rem",
               textAlign: "center",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.05)";
-              if (attack.highlight) {
-                e.currentTarget.style.boxShadow =
-                  "0 0 40px 8px rgba(239,68,68,0.9)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              if (attack.highlight) {
-                e.currentTarget.style.boxShadow =
-                  "0 0 25px 4px rgba(239,68,68,0.6)";
-              }
-            }}
           >
-            {/* 🔥 Red Glow Overlay */}
+            {/* 🔥 Red Glow Overlay — will be shown on hover via CSS when the card has .highlight */}
             {attack.highlight && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "-10px",
-                  bottom: "-10px",
-                  left: "-10px",
-                  right: "-10px",
-                  borderRadius: "20px",
-                  background:
-                    "radial-gradient(circle at 50% 50%, rgba(239,68,68,0.3), transparent 70%)",
-                  zIndex: 0,
-                  filter: "blur(20px)",
-                }}
-              ></div>
+              <div className="glow-overlay" />
             )}
 
             {/* Card content */}

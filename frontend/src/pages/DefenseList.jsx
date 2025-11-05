@@ -12,7 +12,20 @@ export default function DefenseList() {
       highlight: true, // 🌟 highlight this one
       description: "Secure your operating system by locking down vulnerabilities.",
     },
-    
+    {
+      id: 2,
+      name: "📊 IDS Monitor",
+      path: "/defense/ids-monitor",
+      highlight: false,
+      description: "Monitor simulated IDS alerts and triage suspicious events.",
+    },
+    {
+      id: 3,
+      name: "📜 Log Analysis",
+      path: "/defense/log-analysis",
+      highlight: false,
+      description: "Search and analyze system logs to find anomalies.",
+    },
   ];
 
   return (
@@ -33,50 +46,18 @@ export default function DefenseList() {
           <div
             key={defense.id}
             onClick={() => navigate(defense.path)}
-            className="relative cursor-pointer w-80 rounded-2xl transition-all duration-300"
+            className={`attack-card relative cursor-pointer w-80 rounded-2xl transition-all duration-300 ${defense.highlight ? 'highlight defense-highlight' : ''}`}
             style={{
               background: "rgba(17,25,48,0.85)",
               border: defense.highlight
-                ? "1px solid rgba(147, 51, 234, 0.8)" // purple border
+                ? "1px solid rgba(147, 51, 234, 0.18)"
                 : "1px solid rgba(255,255,255,0.08)",
-              boxShadow: defense.highlight
-                ? "0 0 25px 4px rgba(124,58,237,0.6)"
-                : "0 0 12px rgba(0,0,0,0.3)",
               padding: "2rem",
               textAlign: "center",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.05)";
-              if (defense.highlight) {
-                e.currentTarget.style.boxShadow =
-                  "0 0 40px 8px rgba(147,51,234,0.9)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              if (defense.highlight) {
-                e.currentTarget.style.boxShadow =
-                  "0 0 25px 4px rgba(124,58,237,0.6)";
-              }
-            }}
           >
-            {/* 🌟 Purple Glow Overlay */}
-            {defense.highlight && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "-10px",
-                  bottom: "-10px",
-                  left: "-10px",
-                  right: "-10px",
-                  borderRadius: "20px",
-                  background:
-                    "radial-gradient(circle at 50% 50%, rgba(147,51,234,0.3), transparent 70%)",
-                  zIndex: 0,
-                  filter: "blur(20px)",
-                }}
-              ></div>
-            )}
+            {/* Purple Glow Overlay — controlled via CSS on hover */}
+            {defense.highlight && <div className="glow-overlay" />}
 
             {/* Card content */}
             <div style={{ position: "relative", zIndex: 1 }}>
